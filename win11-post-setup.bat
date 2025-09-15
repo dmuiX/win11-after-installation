@@ -25,6 +25,14 @@ if not exist "%USERPROFILE%\.config" mkdir "%USERPROFILE%\.config"
 
 echo load(io.popen('starship init cmd'):read("*a"))() > "%LOCALAPPDATA%\clink\starship.lua"
 
+echo Lade Gruvbox Rainbow Preset von starship.rs...
+curl -L -o "%USERPROFILE%\.config\starship.toml" "https://starship.rs/presets/toml/gruvbox-rainbow.toml"
+
+if exist "%USERPROFILE%\.config\starship.toml" (
+    echo Starship Konfiguration erfolgreich heruntergeladen
+) else (
+    echo WARNUNG: Starship Konfiguration Download fehlgeschlagen
+)
 
 
 :: winget Update
