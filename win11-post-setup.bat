@@ -17,6 +17,8 @@ winget install Starship.Starship --silent --accept-package-agreements --accept-s
 winget install chrisant996.Clink --silent --accept-package-agreements --accept-source-agreements
 winget install DEVCOM.JetBrainsMonoNerdFont --silent --accept-package-agreements --accept-source-agreements
 winget install CodeSector.TeraCopy --silent --accept-package-agreements --accept-source-agreements
+winget install Valve.Steam --silent --accept-package-agreements --accept-source-agreements
+winget install GOG.Galaxy --silent --accept-package-agreements --accept-source-agreements
 
 :: starship config
 echo Erstelle Starship Konfiguration...
