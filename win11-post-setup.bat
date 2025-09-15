@@ -10,7 +10,7 @@ winget source update
 :: winget Installationen
 echo Installiere Programme...
 winget install Mozilla.Firefox --silent --accept-package-agreements --accept-source-agreements
-winget install OpenHashTab.OpenHashTab --silent --accept-package-agreements --accept-source-agreements
+winget install openhashtab--silent --accept-package-agreements --accept-source-agreements
 winget install Microsoft.VisualStudioCode --silent --accept-package-agreements --accept-source-agreements
 winget install gerardog.gsudo --silent --accept-package-agreements --accept-source-agreements
 winget install Starship.Starship --silent --accept-package-agreements --accept-source-agreements
@@ -35,7 +35,6 @@ if exist "%USERPROFILE%\.config\starship.toml" (
 ) else (
     echo WARNUNG: Starship Konfiguration Download fehlgeschlagen
 )
-
 
 :: winget Update
 echo Update aller Programme...
