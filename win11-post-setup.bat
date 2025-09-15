@@ -18,6 +18,15 @@ winget install chrisant996.Clink --silent --accept-package-agreements --accept-s
 winget install JetBrains.JetBrainsMonoNerdFont --silent --accept-package-agreements --accept-source-agreements
 winget install coddec.teracopy --silent --accept-package-agreements --accept-source-agreements
 
+:: starship config
+echo Erstelle Starship Konfiguration...
+if not exist "%LOCALAPPDATA%\clink" mkdir "%LOCALAPPDATA%\clink"
+if not exist "%USERPROFILE%\.config" mkdir "%USERPROFILE%\.config"
+
+echo load(io.popen('starship init cmd'):read("*a"))() > "%LOCALAPPDATA%\clink\starship.lua"
+
+
+
 :: winget Update
 echo Update aller Programme...
 winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
