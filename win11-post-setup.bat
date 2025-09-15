@@ -15,7 +15,7 @@ winget install Microsoft.VisualStudioCode --silent --accept-package-agreements -
 winget install gerardog.gsudo --silent --accept-package-agreements --accept-source-agreements
 winget install Starship.Starship --silent --accept-package-agreements --accept-source-agreements
 winget install chrisant996.Clink --silent --accept-package-agreements --accept-source-agreements
-winget install JetBrains.JetBrainsMonoNerdFont --silent --accept-package-agreements --accept-source-agreements
+winget install DEVCOM.JetBrainsMonoNerdFont --silent --accept-package-agreements --accept-source-agreements
 winget install coddec.teracopy --silent --accept-package-agreements --accept-source-agreements
 
 :: starship config
