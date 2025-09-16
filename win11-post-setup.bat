@@ -24,7 +24,7 @@ winget install xp8jnqfbqh6pvf --silent --accept-package-agreements --accept-sour
 winget install veeam.veeamagent --silent --accept-package-agreements --accept-source-agreements
 winget install vim.vim --silent --accept-package-agreements --accept-source-agreements
 winget install git.git --silent --accept-package-agreements --accept-source-agreements
-winget install apple.icloud --silent --accept-package-agreements --accept-source-agreements
+winget install apple.icloud --accept-package-agreements --accept-source-agreements
 
 :: starship config
 echo Erstelle Starship Konfiguration...
