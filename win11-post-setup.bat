@@ -20,11 +20,11 @@ winget install CodeSector.TeraCopy --silent --accept-package-agreements --accept
 winget install Valve.Steam --silent --accept-package-agreements --accept-source-agreements
 winget install 7zip --silent --accept-package-agreements --accept-source-agreements
 winget install treesizefree --silent --accept-package-agreements --accept-source-agreements
-winget install xp8jnqfbqh6pvf --silent --accept-package-agreements --accept-source-agreements ::Perplexity
+winget install xp8jnqfbqh6pvf --silent --accept-package-agreements --accept-source-agreements ::Perplexity MSStore
 winget install veeam.veeamagent --silent --accept-package-agreements --accept-source-agreements
 winget install vim.vim --silent --accept-package-agreements --accept-source-agreements
 winget install git.git --silent --accept-package-agreements --accept-source-agreements
-winget install apple.icloud --accept-package-agreements --accept-source-agreements
+winget install 9pktq5699m62 --accept-package-agreements --accept-source-agreements ::Apple iCloud MSStore
 
 :: starship config
 echo Erstelle Starship Konfiguration...
