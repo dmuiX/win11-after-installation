@@ -11,7 +11,7 @@ winget source update
 echo Installiere Programme...
 winget install Mozilla.Firefox --silent --accept-package-agreements --accept-source-agreements
 winget install openhashtab--silent --accept-package-agreements --accept-source-agreements
-winget install Microsoft.VisualStudioCode --silent --accept-package-agreements --accept-source-agreements
+winget install Microsoft.VisualStudioCode.Insiders --silent --accept-package-agreements --accept-source-agreements
 winget install gerardog.gsudo --silent --accept-package-agreements --accept-source-agreements
 winget install Starship.Starship --silent --accept-package-agreements --accept-source-agreements
 winget install chrisant996.Clink --silent --accept-package-agreements --accept-source-agreements
@@ -25,6 +25,13 @@ winget install veeam.veeamagent --silent --accept-package-agreements --accept-so
 winget install vim.vim --silent --accept-package-agreements --accept-source-agreements
 winget install git.git --silent --accept-package-agreements --accept-source-agreements
 winget install 9pktq5699m62 --accept-package-agreements --accept-source-agreements ::Apple iCloud MSStore
+winget install Microsoft.PowerToys --accept-package-agreements --accept-source-agreements
+winget install kubectl --accept-package-agreements --accept-source-agreements
+winget install Helm.Helm --accept-package-agreements --accept-source-agreements
+winget install hashicorp.terraform --accept-package-agreements --accept-source-agreements
+winget install autohotkey.autohotkey --accept-package-agreements --accept-source-agreements
+winget install sharkdp.bat --accept-package-agreements --accept-source-agreements
+winget install lsd-rs.lsd --accept-package-agreements --accept-source-agreements
 
 :: starship config
 echo Erstelle Starship Konfiguration...
