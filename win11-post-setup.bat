@@ -1,14 +1,20 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo *** Windows 11 Setup Skript startet ***
+echo *** Start Win 11 setup script ***
 
-:: winget Quellen aktualisieren
+:: =====================
+:: update winget sources
+:: =====================
+
 echo Konfiguriere winget Quellen...
 winget source update
 
-:: winget Installationen
-echo Installiere Programme...
+:: =====================
+:: winget installations
+:: =====================
+
+echo Install programs...
 winget install Mozilla.Firefox --silent --accept-package-agreements --accept-source-agreements
 winget install openhashtab--silent --accept-package-agreements --accept-source-agreements
 winget install Microsoft.VisualStudioCode.Insiders --silent --accept-package-agreements --accept-source-agreements
@@ -34,9 +40,11 @@ winget install sharkdp.bat --accept-package-agreements --accept-source-agreement
 winget install lsd-rs.lsd --accept-package-agreements --accept-source-agreements
 winget install autohotkey.autohotkey --accept-package-agreements --accept-source-agreements
 
-
+:: ===============
 :: starship config
-echo Erstelle Starship Konfiguration...
+:: ===============
+
+echo Create starship config...
 if not exist "%LOCALAPPDATA%\clink" mkdir "%LOCALAPPDATA%\clink"
 if not exist "%USERPROFILE%\.config" mkdir "%USERPROFILE%\.config"
 
@@ -51,8 +59,10 @@ if exist "%USERPROFILE%\.config\starship.toml" (
     echo WARNUNG: Starship Konfiguration Download fehlgeschlagen
 )
 
-
+:: =============
 :: setup aliases
+:: =============
+
 REM Define the path for the aliases file
 set "ALIASES_FILE=%LOCALAPPDATA%\clink\aliases"
 
@@ -98,7 +108,9 @@ if %errorlevel% equ 0 (
 echo.
 echo Setup complete. Please open a new Command Prompt to see the changes.
 
+:: ==========
 :: add .vimrc
+:: ==========
 
 REM Define the full path for the .vimrc file
 set "VIMRC_FILE=%USERPROFILE%\.vimrc"
@@ -172,7 +184,10 @@ REM Special characters like |, <, >, and & are escaped with a caret (^).
 echo.
 echo File '%VIMRC_FILE%' was created successfully.
 
+
+:: =====================
 :: add macos-hotkeys.ahk
+:: =====================
 
 REM Define the full path for the AutoHotkey script file on the user's Desktop
 set "AHK_FILE=%USERPROFILE%\Desktop\macos-hotkeys.ahk"
@@ -240,23 +255,123 @@ REM The caret character (^) is escaped by doubling it (^^) so batch treats it li
 echo.
 echo File '%AHK_FILE%' was created successfully on your Desktop.
 
+
+:: ============================
+:: add a cleanup-win.bat script
+:: ============================
+
+set "OUT_FILE=%USERPROFILE%\cleanup-win.bat"
+
+echo.
+echo Creating the maintenance script at: %OUT_FILE%
+echo Please wait...
+
+REM This block writes the content line-by-line into the new batch file.
+(
+    echo @echo off
+    echo.
+    echo ::--------------------------------------------------------------------------------
+    echo :: Part 0: Self-Elevation
+    echo :: This block checks for admin rights and re-launches the script as admin if needed.
+    echo ::--------------------------------------------------------------------------------
+    echo net session ^>nul 2^>^&1
+    echo if %%errorLevel%% == 0 (
+    echo     echo Running with administrative privileges.
+    echo ) else (
+    echo     echo Requesting administrative privileges...
+    echo     powershell -Command "Start-Process cmd -ArgumentList '/c \"%%~f0\" %%*' -Verb runAs"
+    echo     exit /b
+    echo )
+    echo echo.
+    echo :: --- The main script starts here, now running as Administrator ---
+    echo.
+    echo echo Starting comprehensive DISM repair, cleanup, SFC scan, and Disk Cleanup...
+    echo echo.
+    echo REM ====================================================================
+    echo REM  Part 1: Repairing the Windows Image
+    echo REM ====================================================================
+    echo.
+    echo echo [1/8] Checking for component store corruption...
+    echo DISM /Online /Cleanup-Image /CheckHealth
+    echo echo.
+    echo echo [2/8] Scanning for component store corruption...
+    echo DISM /Online /Cleanup-Image /ScanHealth
+    echo echo.
+    echo echo [3/8] Repairing the Windows image...
+    echo DISM /Online /Cleanup-Image /RestoreHealth
+    echo echo.
+    echo REM ====================================================================
+    echo REM  Part 2: Comprehensive Component Store Cleanup
+    echo REM ====================================================================
+    echo.
+    echo echo [4/8] Analyzing the component store...
+    echo DISM /Online /Cleanup-Image /AnalyzeComponentStore
+    echo echo.
+    echo echo [5/8] Performing standard component cleanup...
+    echo DISM /Online /Cleanup-Image /StartComponentCleanup
+    echo echo.
+    echo echo [6/8] Performing aggressive component cleanup...
+    echo DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase
+    echo echo.
+    echo echo [7/8] Removing superseded service pack components...
+    echo DISM /Online /Cleanup-Image /SPSuperseded
+    echo echo.
+    echo REM ====================================================================
+    echo REM  Part 3: System File Checker
+    echo REM ====================================================================
+    echo.
+    echo echo [8/8] Running System File Checker...
+    echo sfc /scannow
+    echo echo.
+    echo REM ====================================================================
+    echo REM  Part 4: Automated Disk Cleanup
+    echo REM ====================================================================
+    echo.
+    echo echo Running pre-configured Disk Cleanup...
+    echo cleanmgr /sagerun:1
+    echo echo.
+    echo REM ====================================================================
+    echo echo  Script Complete
+    echo REM ====================================================================
+    echo echo.
+    echo echo The comprehensive maintenance script has finished.
+    echo pause
+) > "%OUT_FILE%"
+
+echo.
+echo The script 'cleanup-win.bat' has been created successfully!
+echo You can find it in your home folder: %USERPROFILE%
+
+
 :: ==============
 :: winget Update
 :: ==============
 
-echo Update aller Programme...
+echo Update all Programs...
 winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
 
-:: gsudo konfigurieren
+
+:: ===============
+:: configure gsudo
+:: ===============
+
 echo Konfiguriere gsudo...
 gsudo config PathPrecedence True 2>nul || echo WARNUNG: gsudo Konfiguration fehlgeschlagen
 
-:: OneDrive und Teams entfernen
-echo Deinstalliere OneDrive und Teams...
+
+:: =========================
+:: remove OneDrive and Teams
+:: ==========================
+
+echo Deinstall OneDrive and Teams...
 winget uninstall Microsoft.OneDrive --silent 2>nul || echo OneDrive bereits deinstalliert
 winget uninstall Microsoft.Teams --silent 2>nul || echo Teams bereits deinstalliert
 
-:: Datenschutz Registry
+
+:: ============================
+:: Privacy registry entries
+:: ============================
+
 echo Setze Datenschutzeinstellungen...
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338388Enabled" /t REG_DWORD /d 0 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338389Enabled" /t REG_DWORD /d 0 /f >nul
@@ -267,22 +382,33 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\SearchSettings" /v "Cort
 reg add "HKCU\Software\Microsoft\Speech_OneCore\Preferences" /v "HasAccepted" /t REG_DWORD /d 0 /f >nul
 reg add "HKCU\Software\Microsoft\InputPersonalization" /v "RestrictImplicitTextCollection" /t REG_DWORD /d 1 /f >nul
 
+:: =============
 :: Taskbar links
+:: =============
 echo Setze Taskbar auf links...
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "TaskbarAl" /t REG_DWORD /d 0 /f >nul
 
-:: Dunkles Theme
-echo Setze dunkles Theme...
+:: ==========
+:: Dark Theme
+:: ==========
+
+echo Set dark Theme...
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "AppsUseLightTheme" /t REG_DWORD /d 0 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "SystemUsesLightTheme" /t REG_DWORD /d 0 /f >nul
 
-:: Explorer Einstellungen
-echo Setze Explorer Einstellungen...
+:: ======================
+:: Explorer settings
+:: ======================
+echo Setup explorer...
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "HideFileExt" /t REG_DWORD /d 0 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Hidden" /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowSuperHidden" /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "LaunchTo" /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableXamlStartMenu" /t REG_
 
-:: Start Debloater
+
+:: ======================
+:: Start Debloater script
+:: ======================
+
 irm "https://win11debloat.raphi.re/" | iex
