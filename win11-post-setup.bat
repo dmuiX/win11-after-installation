@@ -1,7 +1,26 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal disableDelayedExpansion
+
+::--------------------------------------------------------------------------------
+:: Self-Elevation: Request admin rights if not already elevated
+::--------------------------------------------------------------------------------
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo Running with administrative privileges.
+) else (
+    echo Requesting administrative privileges...
+    powershell -Command "Start-Process cmd -ArgumentList '/c \"%~f0\" %*' -Verb runAs"
+    exit /b
+)
 
 echo *** Start Win 11 setup script ***
+
+:: =====================
+:: update winget sources
+:: =====================
+
+echo Konfiguriere winget Quellen...
+"%WINGET_CMD%" source update
 
 :: =====================
 :: update winget sources
@@ -14,31 +33,57 @@ winget source update
 :: winget installations
 :: =====================
 
-echo Install programs...
-winget install Mozilla.Firefox --silent --accept-package-agreements --accept-source-agreements
-winget install openhashtab--silent --accept-package-agreements --accept-source-agreements
-winget install Microsoft.VisualStudioCode.Insiders --silent --accept-package-agreements --accept-source-agreements
-winget install gerardog.gsudo --silent --accept-package-agreements --accept-source-agreements
-winget install Starship.Starship --silent --accept-package-agreements --accept-source-agreements
-winget install chrisant996.Clink --silent --accept-package-agreements --accept-source-agreements
-winget install DEVCOM.JetBrainsMonoNerdFont --silent --accept-package-agreements --accept-source-agreements
-winget install CodeSector.TeraCopy --silent --accept-package-agreements --accept-source-agreements
-winget install Valve.Steam --silent --accept-package-agreements --accept-source-agreements
-winget install 7zip --silent --accept-package-agreements --accept-source-agreements
-winget install treesizefree --silent --accept-package-agreements --accept-source-agreements
-winget install xp8jnqfbqh6pvf --silent --accept-package-agreements --accept-source-agreements ::Perplexity MSStore
-winget install veeam.veeamagent --silent --accept-package-agreements --accept-source-agreements
-winget install vim.vim --silent --accept-package-agreements --accept-source-agreements
-winget install git.git --silent --accept-package-agreements --accept-source-agreements
-winget install 9pktq5699m62 --accept-package-agreements --accept-source-agreements ::Apple iCloud MSStore
-winget install Microsoft.PowerToys --accept-package-agreements --accept-source-agreements
-winget install kubectl --accept-package-agreements --accept-source-agreements
-winget install Helm.Helm --accept-package-agreements --accept-source-agreements
-winget install hashicorp.terraform --accept-package-agreements --accept-source-agreements
-winget install autohotkey.autohotkey --accept-package-agreements --accept-source-agreements
-winget install sharkdp.bat --accept-package-agreements --accept-source-agreements
-winget install lsd-rs.lsd --accept-package-agreements --accept-source-agreements
-winget install autohotkey.autohotkey --accept-package-agreements --accept-source-agreements
+echo Installing programs (skipping already installed)...
+
+:: Helper: Install only if not already installed
+:: Usage: call :winget_install "package.id"
+call :winget_install Microsoft.WindowsTerminal
+call :winget_install Mozilla.Firefox
+call :winget_install openhashtab
+call :winget_install Microsoft.VisualStudioCode.Insiders
+call :winget_install gerardog.gsudo
+call :winget_install Starship.Starship
+call :winget_install chrisant996.Clink
+call :winget_install DEVCOM.JetBrainsMonoNerdFont
+call :winget_install CodeSector.TeraCopy
+call :winget_install Valve.Steam
+call :winget_install 7zip.7zip
+call :winget_install JAMSoftware.TreeSize.Free
+echo [INSTALL] Perplexity (MS Store)...
+winget install XP8JNQFBQH6PVF --silent --accept-package-agreements --accept-source-agreements
+call :winget_install veeam.veeamagent
+call :winget_install vim.vim
+call :winget_install Git.Git
+echo [INSTALL] iCloud Drive (MS Store)...
+winget install 9PKTQ5699M62 --silent --accept-package-agreements --accept-source-agreements
+call :winget_install sharkdp.bat
+call :winget_install lsd-rs.lsd
+call :winget_install AutoHotkey.AutoHotkey
+call :winget_install Google.GoogleDrive
+call :winget_install dandavison.delta
+call :winget_install Google.Antigravity
+
+goto :after_winget_helper
+
+:winget_install
+winget list --id %1 >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [SKIP] %1 already installed.
+) else (
+    echo [INSTALL] %1...
+    winget install --id %1 --silent --accept-package-agreements --accept-source-agreements
+    if %errorlevel% neq 0 echo [ERROR] Failed to install %1
+)
+exit /b
+
+:after_winget_helper
+
+:: =================
+:: fix git, vim, starship path
+:: =================
+
+@REM echo [FIX] PATH bereinigen...
+@REM powershell -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); $cleanP=($p.Split(';') | ? { $_ -notmatch 'Git\\\\usr\\\\bin' } | ? { $_ } ) -join ';'; $v=(gci 'C:\Program Files\Vim' -Filter vim.exe -R -EA 0 | select -First 1).DirectoryName; $g='C:\Program Files\Git\cmd'; $s='C:\Program Files\starship\bin'; [Environment]::SetEnvironmentVariable('Path', $cleanP + ';' + $v + ';' + $g + ';' + $s, 'User'); Write-Host \"✅ Vim: $v | Git: $g | Starship: $s\""
 
 :: ===============
 :: starship config
@@ -95,9 +140,9 @@ if exist "%ProgramFiles(x86)%\clink\clink.bat" (
     set "CLINK_PATH=%ProgramW6432%\clink\clink.bat"
 )
 
-set "AUTORUN_COMMAND=""%CLINK_PATH%" inject --profile "%LOCALAPPDATA%\clink" && doskey /macrofile="%ALIASES_FILE%""
+set "AUTORUN_COMMAND=\"%CLINK_PATH%\" inject --profile \"%LOCALAPPDATA%\clink\" ^&^& doskey /macrofile=\"%ALIASES_FILE%\""
 
-reg add "HKCU\Software\Microsoft\Command Processor" /v Autorun /t REG_SZ /d %AUTORUN_COMMAND% /f
+reg add "HKCU\Software\Microsoft\Command Processor" /v Autorun /t REG_SZ /d "%AUTORUN_COMMAND%" /f
 
 if %errorlevel% equ 0 (
     echo Successfully updated the registry for Autorun.
@@ -148,7 +193,7 @@ REM Special characters like |, <, >, and & are escaped with a caret (^).
     echo " ============================================================================
     echo.
     echo " Auto-install vim-plug for Windows if not found
-    echo if has('win32') ^&^& empty(glob('~/vimfiles/autoload/plug.vim'))
+    echo if has('win32') ^&^& empty^(glob^('~/vimfiles/autoload/plug.vim'^)^)
     echo   " Define the PowerShell command to download and place plug.vim
     echo   let s:command = 'powershell -Command "iwr -useb https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim ^| ni $HOME/vimfiles/autoload/plug.vim -Force"'
     echo.  
@@ -195,66 +240,45 @@ set "AHK_FILE=%USERPROFILE%\Desktop\macos-hotkeys.ahk"
 REM This block writes the multiline content to the file.
 REM The > operator creates the file or overwrites it if it already exists.
 REM The caret character (^) is escaped by doubling it (^^) so batch treats it literally.
-(
-    echo #Requires AutoHotkey v2.0
-    echo #SingleInstance Force
-    echo.
-    echo ; --- Universal Shortcuts ---
-    echo $!x::Send("^^x")         ; Alt+X -> Ctrl+X (Cut)
-    echo $!c::Send("^^c")         ; Alt+C -> Ctrl+C (Copy)
-    echo $!v::Send("^^v")         ; Alt+V -> Ctrl+V (Paste)
-    echo $!s::Send("^^s")         ; Alt+S -> Ctrl+S (Save)
-    echo $!a::Send("^^a")         ; Alt+A -> Ctrl+A (Select All)
-    echo $!z::Send("^^z")         ; Alt+Z -> Ctrl+Z (Undo)
-    echo $!+z::Send("^^y")        ; Alt+Shift+Z -> Ctrl+Y (Redo)
-    echo $!w::Send("^^w")         ; Alt+W -> Ctrl+W (Close Window/Tab)
-    echo $!f::Send("^^f")         ; Alt+F -> Ctrl+F (Find)
-    echo $!n::Send("^^n")         ; Alt+N -> Ctrl+N (New)
-    echo $!q::Send("!{f4}")      ; Alt+Q -> Alt+F4 (Quit App)
-    echo $!r::Send("^^({f5})")      ; Alt+R -> Ctrl+F5 (Hard Refresh)
-    echo $!m::Send("#d")         ; Alt+D -> Win+D (Show Desktop / Minimize All)
-    echo $!`::Send("{Alt Down}{Shift Down}{Tab}{Shift Up}") ; Alt+` -> Cycle backwards through windows of an app
-    echo.
-    echo ; --- Quick Switch Tab shortcuts ---
-    echo $!1::Send("^^1")
-    echo $!2::Send("^^2")
-    echo $!3::Send("^^3")
-    echo $!4::Send("^^4")
-    echo $!5::Send("^^5")
-    echo $!6::Send("^^6")
-    echo $!7::Send("^^7")
-    echo $!8::Send("^^8")
-    echo $!9::Send("^^9")
-    echo $!0::Send("^^0")
-    echo.
-    echo ; --- Browser/Tab-based App shortcuts ---
-    echo $!t::Send("^^t")         ; Alt+T -> Ctrl+T (New Tab)
-    echo $!+t::Send("^^+t")       ; Alt+Shift+T -> Re-open Closed Tab
-    echo $!+]::Send("^^({Tab})")   ; Alt+] -> Ctrl+Tab (Next Tab)
-    echo $!+[::Send("^^+({Tab})")  ; Alt+[ -> Ctrl+Shift+Tab (Previous Tab)
-    echo $!l::Send("^^l")         ; Alt+L -> Focus Address Bar
-    echo.
-    echo ; --- Text Navigation and Selection ---
-    echo $!Left::Send("{Home}")
-    echo $!Right::Send("{End}")
-    echo $!Up::Send("^^({Home})")
-    echo $!Down::Send("^^({End})")
-    echo.
-    echo $!+Left::Send("+{Home}")
-    echo $!+Right::Send("+{End}")
-    echo $!+Up::Send("^^+{Home}")
-    echo $!+Down::Send("^^+{End}")
-    echo.
-    echo #Left::Send("^^({Left})")
-    echo #Right::Send("^^({Right})")
-    echo #+Left::Send("^^+({Left})")
-    echo #+Right::Send("^^+({Right})")
-    echo #BS::Send("^^({BS})")     ; Win+Backspace -> Ctrl+Backspace (Delete previous word)
-) > "%AHK_FILE%"
-
 echo.
-echo File '%AHK_FILE%' was created successfully on your Desktop.
+echo Copying 'macos-hotkeys.ahk' to Desktop...
+copy /Y "%~dp0helpers\macos-hotkeys.ahk" "%AHK_FILE%" >nul
+if exist "%AHK_FILE%" (
+    echo File '%AHK_FILE%' was copied successfully.
+) else (
+    echo FAILURE: Could not copy '%AHK_FILE%'.
+)
 
+
+:: ============================
+:: Configure Disk Cleanup (SageRun:1)
+:: ============================
+echo Configuring Disk Cleanup profile...
+REM Set StateFlags0001 = 2 (Selected) / 0 (Not Selected)
+REM User Goal: Remove everything EXCEPT Downloads and Recycle Bin
+
+:: --- EXCLUDED (Keep these) ---
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Recycle Bin" /v StateFlags0001 /t REG_DWORD /d 0 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\DownloadsFolder" /v StateFlags0001 /t REG_DWORD /d 0 /f >nul
+
+:: --- INCLUDED (Delete these) ---
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Active Setup Temp Folders" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\BranchCache" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\D3D Shader Cache" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Delivery Optimization Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Downloaded Program Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Internet Cache Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Memory Dump Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Old Chkdsk Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Setup Log Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\System error memory dump files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Temporary Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Temporary Setup Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Thumbnail Cache" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Update Cleanup" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Upgrade Discarded Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Windows Defender" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\Windows Error Reporting Files" /v StateFlags0001 /t REG_DWORD /d 2 /f >nul
 
 :: ============================
 :: add a cleanup-win.bat script
@@ -266,81 +290,52 @@ echo.
 echo Creating the maintenance script at: %OUT_FILE%
 echo Please wait...
 
-REM This block writes the content line-by-line into the new batch file.
-(
-    echo @echo off
-    echo.
-    echo ::--------------------------------------------------------------------------------
-    echo :: Part 0: Self-Elevation
-    echo :: This block checks for admin rights and re-launches the script as admin if needed.
-    echo ::--------------------------------------------------------------------------------
-    echo net session ^>nul 2^>^&1
-    echo if %%errorLevel%% == 0 (
-    echo     echo Running with administrative privileges.
-    echo ) else (
-    echo     echo Requesting administrative privileges...
-    echo     powershell -Command "Start-Process cmd -ArgumentList '/c \"%%~f0\" %%*' -Verb runAs"
-    echo     exit /b
-    echo )
-    echo echo.
-    echo :: --- The main script starts here, now running as Administrator ---
-    echo.
-    echo echo Starting comprehensive DISM repair, cleanup, SFC scan, and Disk Cleanup...
-    echo echo.
-    echo REM ====================================================================
-    echo REM  Part 1: Repairing the Windows Image
-    echo REM ====================================================================
-    echo.
-    echo echo [1/8] Checking for component store corruption...
-    echo DISM /Online /Cleanup-Image /CheckHealth
-    echo echo.
-    echo echo [2/8] Scanning for component store corruption...
-    echo DISM /Online /Cleanup-Image /ScanHealth
-    echo echo.
-    echo echo [3/8] Repairing the Windows image...
-    echo DISM /Online /Cleanup-Image /RestoreHealth
-    echo echo.
-    echo REM ====================================================================
-    echo REM  Part 2: Comprehensive Component Store Cleanup
-    echo REM ====================================================================
-    echo.
-    echo echo [4/8] Analyzing the component store...
-    echo DISM /Online /Cleanup-Image /AnalyzeComponentStore
-    echo echo.
-    echo echo [5/8] Performing standard component cleanup...
-    echo DISM /Online /Cleanup-Image /StartComponentCleanup
-    echo echo.
-    echo echo [6/8] Performing aggressive component cleanup...
-    echo DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase
-    echo echo.
-    echo echo [7/8] Removing superseded service pack components...
-    echo DISM /Online /Cleanup-Image /SPSuperseded
-    echo echo.
-    echo REM ====================================================================
-    echo REM  Part 3: System File Checker
-    echo REM ====================================================================
-    echo.
-    echo echo [8/8] Running System File Checker...
-    echo sfc /scannow
-    echo echo.
-    echo REM ====================================================================
-    echo REM  Part 4: Automated Disk Cleanup
-    echo REM ====================================================================
-    echo.
-    echo echo Running pre-configured Disk Cleanup...
-    echo cleanmgr /sagerun:1
-    echo echo.
-    echo REM ====================================================================
-    echo echo  Script Complete
-    echo REM ====================================================================
-    echo echo.
-    echo echo The comprehensive maintenance script has finished.
-    echo pause
-) > "%OUT_FILE%"
+echo.
+echo Copying 'cleanup-win.bat' to home folder...
+copy /Y "%~dp0helpers\cleanup-win.bat" "%OUT_FILE%" >nul
+if exist "%OUT_FILE%" (
+    echo File '%OUT_FILE%' was copied successfully.
+) else (
+    echo FAILURE: Could not copy '%OUT_FILE%'.
+)
 
 echo.
 echo The script 'cleanup-win.bat' has been created successfully!
 echo You can find it in your home folder: %USERPROFILE%
+
+:: Schedule the cleanup task weekly
+echo Scheduling cleanup task...
+schtasks /create /tn "WeeklyCleanup" /tr "\"%OUT_FILE%\"" /sc WEEKLY /st 12:00 /rl HIGHEST /f >nul
+if %errorlevel% equ 0 (
+    echo Task 'WeeklyCleanup' scheduled successfully.
+) else (
+    echo Failed to schedule 'WeeklyCleanup' task.
+)
+
+
+:: ============================
+:: Setup Daily Winget Update
+:: ============================
+set "UPDATE_SCRIPT=%USERPROFILE%\daily-update.bat"
+
+echo.
+echo Copying 'daily-update.bat' to home folder...
+copy /Y "%~dp0helpers\daily-update.bat" "%UPDATE_SCRIPT%" >nul
+
+echo Scheduling daily update task...
+schtasks /create /tn "DailyWingetUpdate" /tr "\"%UPDATE_SCRIPT%\"" /sc DAILY /st 13:00 /rl HIGHEST /f >nul
+if %errorlevel% equ 0 (
+    echo Task 'DailyWingetUpdate' scheduled successfully.
+) else (
+    echo Failed to schedule 'DailyWingetUpdate' task.
+)
+
+:: ============================
+:: Restore VS Code Settings & Extensions
+:: ============================
+echo.
+echo Running restore settings script...
+call "%~dp0helpers\restore-settings.bat"
 
 
 :: ==============
@@ -348,7 +343,9 @@ echo You can find it in your home folder: %USERPROFILE%
 :: ==============
 
 echo Update all Programs...
+winget pin add --id Microsoft.AppInstaller --blocking >nul 2>&1
 winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
+winget pin remove --id Microsoft.AppInstaller >nul 2>&1
 
 
 :: ===============
@@ -366,7 +363,6 @@ gsudo config PathPrecedence True 2>nul || echo WARNUNG: gsudo Konfiguration fehl
 echo Deinstall OneDrive and Teams...
 winget uninstall Microsoft.OneDrive --silent 2>nul || echo OneDrive bereits deinstalliert
 winget uninstall Microsoft.Teams --silent 2>nul || echo Teams bereits deinstalliert
-
 
 :: ============================
 :: Privacy registry entries
@@ -394,7 +390,31 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "T
 
 echo Set dark Theme...
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "AppsUseLightTheme" /t REG_DWORD /d 0 /f >nul
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v "SystemUsesLightTheme" /t REG_DWORD /d 0 /f >nul
+
+:: ============================
+:: Extended Privacy Settings
+:: ============================
+echo Disabling Telemetry...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v "AllowTelemetry" /t REG_DWORD /d 0 /f >nul
+
+echo Disabling Advertising ID...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo" /v "DisabledByGroupPolicy" /t REG_DWORD /d 1 /f >nul
+
+echo Disabling Windows Consumer Features (Start Menu Ads)...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d 1 /f >nul
+
+echo Disabling Location Tracking...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" /v "DisableLocation" /t REG_DWORD /d 1 /f >nul
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" /v "DisableLocationScripting" /t REG_DWORD /d 1 /f >nul
+
+echo Disabling Tailored Experiences...
+reg add "HKCU\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableTailoredExperiencesWithDiagnosticData" /t REG_DWORD /d 1 /f >nul
+
+echo Disabling Settings Suggestions...
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-338393Enabled" /t REG_DWORD /d 0 /f >nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353694Enabled" /t REG_DWORD /d 0 /f >nul
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353696Enabled" /t REG_DWORD /d 0 /f >nul
+
 
 :: ======================
 :: Explorer settings
@@ -404,11 +424,79 @@ reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "H
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "Hidden" /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowSuperHidden" /t REG_DWORD /d 1 /f >nul
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "LaunchTo" /t REG_DWORD /d 1 /f >nul
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableXamlStartMenu" /t REG_
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "EnableXamlStartMenu" /t REG_DWORD /d 0 /f >nul
 
+
+:: ======================
+:: Download & Install Meslo Font
+:: ======================
+echo.
+echo Checking Meslo LG S Nerd Font...
+
+:: Check if any Meslo font file exists in Windows Fonts folder
+if exist "C:\Windows\Fonts\MesloLGS NF Regular.ttf" (
+    echo Meslo LG S Nerd Font is already installed. Skipping.
+    goto :SkipMesloInstall
+)
+if exist "%LOCALAPPDATA%\Microsoft\Windows\Fonts\MesloLGS NF Regular.ttf" (
+    echo Meslo LG S Nerd Font is already installed ^(user fonts^). Skipping.
+    goto :SkipMesloInstall
+)
+
+echo Downloading Meslo LG S Nerd Font...
+mkdir "%USERPROFILE%\Downloads\MesloFont" 2>nul
+curl -L -o "%USERPROFILE%\Downloads\MesloFont\MesloLGS NF Regular.ttf" "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%%20NF%%20Regular.ttf"
+curl -L -o "%USERPROFILE%\Downloads\MesloFont\MesloLGS NF Bold.ttf" "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%%20NF%%20Bold.ttf"
+curl -L -o "%USERPROFILE%\Downloads\MesloFont\MesloLGS NF Italic.ttf" "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%%20NF%%20Italic.ttf"
+curl -L -o "%USERPROFILE%\Downloads\MesloFont\MesloLGS NF Bold Italic.ttf" "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%%20NF%%20Bold%%20Italic.ttf"
+
+echo Installing fonts...
+powershell -Command "$fonts = (New-Object -ComObject Shell.Application).Namespace(0x14); Get-ChildItem '%USERPROFILE%\Downloads\MesloFont\*.ttf' | ForEach-Object { Write-Host ('Installing ' + $_.Name + '...'); $fonts.CopyHere($_.FullName) }"
+echo Font installation complete.
+
+:SkipMesloInstall
+
+:: ============================
+:: SSH Agent Setup
+:: ============================
+echo.
+echo Setting up OpenSSH Agent...
+powershell -Command "if (Get-Service ssh-agent -ErrorAction SilentlyContinue) { Set-Service -Name ssh-agent -StartupType Automatic; Start-Service ssh-agent; Write-Host 'SSH Agent has been set to Automatic and Started.' } else { Write-Host 'SSH Agent service not found.' }"
+
+:: ============================
+:: Git Configuration
+:: ============================
+echo.
+echo Configuring Git...
+
+:: Check if git user.name is set
+git config --global user.name >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Git user.name not set. Please enter details:
+    set /p GIT_NAME="Enter your Name: "
+    set /p GIT_EMAIL="Enter your Email: "
+    
+    :: Use 'call' to ensure variables are expanded correctly if we were in a block (though we aren't here)
+    git config --global user.name "%GIT_NAME%"
+    git config --global user.email "%GIT_EMAIL%"
+    echo Git identity set.
+) else (
+    echo Git identity already configured.
+)
+
+:: Configure Delta as pager
+echo Configuring Delta as git pager...
+git config --global core.pager "delta"
+git config --global interactive.diffFilter "delta --color-only"
+git config --global delta.navigate true
+git config --global delta.light false
+git config --global merge.conflictstyle diff3
+git config --global diff.colorMoved default
+
+echo Git configuration complete.
 
 :: ======================
 :: Start Debloater script
 :: ======================
 
-irm "https://win11debloat.raphi.re/" | iex
+start "Win11Debloat" powershell -Command "irm \"https://win11debloat.raphi.re/\" | iex"
