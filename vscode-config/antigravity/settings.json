@@ -1,0 +1,10 @@
+{
+    "workbench.productIconTheme": "material-product-icons",
+    "workbench.colorTheme": "AMOLED Github Theme",
+    "files.autoSave": "afterDelay",
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "editor.fontFamily": "MesloLGS NF",
+    "workbench.iconTheme": "material-icon-theme",
+    "files.autoSaveWhenNoErrors": true,
+    "editor.formatOnSave": true
+}

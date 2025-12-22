@@ -1,0 +1,111 @@
+{
+    "telemetry.machineId": "09bc722a13ffab70191ea97bd89d38f54a99942c9e47f75088aa8b21aca9f449",
+    "telemetry.sqmId": "{C3016C1D-ACD6-4741-B230-10C503AED5BE}",
+    "telemetry.devDeviceId": "b4cf214b-6959-4746-9ba4-8b7b8c55578b",
+    "backupWorkspaces": {
+        "workspaces": [],
+        "folders": [
+            {
+                "folderUri": "file:///c%3A/Users/Win11/win11-after-installation"
+            },
+            {
+                "folderUri": "file:///c%3A/Users/Win11/.gemini/antigravity/playground/quantum-curiosity"
+            }
+        ],
+        "emptyWindows": []
+    },
+    "windowControlHeight": 35,
+    "profileAssociations": {
+        "workspaces": {
+            "file:///c%3A/Users/Win11/win11-after-installation": "__default__profile__",
+            "file:///c%3A/Users/Win11/.gemini/antigravity/playground/quantum-curiosity": "__default__profile__"
+        },
+        "emptyWindows": {}
+    },
+    "windowsState": {
+        "lastActiveWindow": {
+            "folder": "file:///c%3A/Users/Win11/win11-after-installation",
+            "backupPath": "C:\\Users\\Win11\\AppData\\Roaming\\Antigravity\\Backups\\663b2e1bd4e6699441857fb41e4b1498",
+            "uiState": {
+                "mode": 1,
+                "x": 0,
+                "y": 0,
+                "width": 1152,
+                "height": 1248
+            }
+        },
+        "openedWindows": [
+            {
+                "folder": "file:///c%3A/Users/Win11/win11-after-installation",
+                "backupPath": "C:\\Users\\Win11\\AppData\\Roaming\\Antigravity\\Backups\\663b2e1bd4e6699441857fb41e4b1498",
+                "uiState": {
+                    "mode": 1,
+                    "x": 0,
+                    "y": 0,
+                    "width": 1152,
+                    "height": 1248
+                }
+            }
+        ]
+    },
+    "unifiedStateSync.hasTrajectorySummariesMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasPlanningModeMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasArtifactReviewPolicyMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasTerminalAutoExecutionPolicyMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasTerminalAllowedCommandsMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasTerminalDeniedCommandsMigrated": true,
+    "antigravityUnifiedStateSync.agentPreferences.hasAgentFileAccessMigration": true,
+    "antigravityUnifiedStateSync.editorPreferences.hasShowSelectionPopupMigrated": true,
+    "antigravityUnifiedStateSync.editorPreferences.hasDemoModeEnabledMigrated": true,
+    "theme": "vs-dark",
+    "themeBackground": "#000000",
+    "windowSplash": {
+        "zoomLevel": 0,
+        "baseTheme": "vs-dark",
+        "colorInfo": {
+            "foreground": "#d1d5da",
+            "background": "#000000",
+            "editorBackground": "#000000",
+            "titleBarBackground": "#000000",
+            "titleBarBorder": "#000000",
+            "activityBarBackground": "#000000",
+            "activityBarBorder": "#000000",
+            "sideBarBackground": "#000000",
+            "sideBarBorder": "#000000",
+            "statusBarBackground": "#000000",
+            "statusBarBorder": "#000000",
+            "statusBarNoFolderBackground": "#000000"
+        },
+        "layoutInfo": {
+            "sideBarSide": "left",
+            "editorPartMinWidth": 220,
+            "titleBarHeight": 35,
+            "activityBarWidth": 42,
+            "sideBarWidth": 300,
+            "auxiliaryBarWidth": 0,
+            "statusBarHeight": 22,
+            "windowBorder": false
+        }
+    },
+    "windowSplashWorkspaceOverride": {
+        "layoutInfo": {
+            "sideBarWidth": 300,
+            "auxiliaryBarWidth": 441,
+            "workspaces": {
+                "d157be8690878e593c5a3dbd483ee47a": {
+                    "sideBarVisible": true,
+                    "auxiliaryBarVisible": false
+                },
+                "5616a4fcd25ce67994ed51de30b184e0": {
+                    "sideBarVisible": true,
+                    "auxiliaryBarVisible": true
+                }
+            }
+        }
+    },
+    "antigravityUnifiedStateSync.tabPreferences.hasMigrated": true,
+    "antigravityUnifiedStateSync.browserPreferences.hasBrowserAllowlistMigrated": true,
+    "antigravityUnifiedStateSync.browserPreferences.hasBrowserLaunchPreferencesMigrated": true,
+    "antigravityUnifiedStateSync.browserPreferences.hasAddedLocalhostToAllowlist": true,
+    "jetski.agentManagerWindowClosed": false
+}

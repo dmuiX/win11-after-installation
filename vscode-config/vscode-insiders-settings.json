@@ -1,0 +1,31 @@
+{
+    "workbench.productIconTheme": "material-product-icons",
+    "workbench.iconTheme": "a-file-icon-vscode",
+    "workbench.colorTheme": "AMOLED Github Theme",
+    "files.autoSave": "afterDelay",
+    "files.autoSaveWhenNoErrors": true,
+    "editor.formatOnSave": true,
+    "editor.fontFamily": "MesloLGS NF",
+    "git.autofetch": true,
+    "redhat.telemetry.enabled": false,
+    "vs-kubernetes": {
+        "vscode-kubernetes.helm-path-linux": "/home/nasadmin/.local/state/vs-kubernetes/tools/helm/linux-amd64/helm",
+        "vscode-kubernetes.minikube-path-linux": "/home/nasadmin/.local/state/vs-kubernetes/tools/minikube/linux-amd64/minikube",
+        "vs-kubernetes.crd-code-completion": "enabled",
+        "vs-kubernetes.knownKubeconfigs": [
+            "/home/nasadmin/.kube/config"
+        ],
+        "vs-kubernetes.kubeconfig": "/home/nasadmin/.kube/config"
+    },
+    "telemetry.editStats.enabled": false,
+    "telemetry.telemetryLevel": "off",
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "editor.tabSize": 2,
+    "bashBeautify.tabSize": 2,
+    "extensions.autoUpdate": false,
+    "scm.repositories.selectionMode": "multiple",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "explorer.confirmDragAndDrop": false,
+}
