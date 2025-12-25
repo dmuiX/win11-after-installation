@@ -1,9 +1,5 @@
-.obsolete
-alphabotsec.vscode-eclipse-keybindings-0.16.1-universal
-cweijan.cweijan-personal-material-icon-theme-5.0.0-universal
-extensions.json
-kylinideteam.gitlens-0.1.10-universal
-pkief.material-icon-theme-5.29.0-universal
-pkief.material-icon-theme-5.30.0-universal
-pkief.material-product-icons-1.7.1-universal
-t3m1n4l.amoled-github-1.0.4-universal
+alphabotsec.vscode-eclipse-keybindings
+kylinideteam.gitlens
+pkief.material-icon-theme
+pkief.material-product-icons
+t3m1n4l.amoled-github

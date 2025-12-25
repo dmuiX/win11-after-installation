@@ -3,50 +3,40 @@
     "telemetry.sqmId": "{C3016C1D-ACD6-4741-B230-10C503AED5BE}",
     "telemetry.devDeviceId": "b4cf214b-6959-4746-9ba4-8b7b8c55578b",
     "backupWorkspaces": {
-        "workspaces": [],
-        "folders": [
+        "workspaces": [
             {
-                "folderUri": "file:///c%3A/Users/Win11/win11-after-installation"
-            },
-            {
-                "folderUri": "file:///c%3A/Users/Win11/.gemini/antigravity/playground/quantum-curiosity"
+                "id": "5c40155c8f9f3cfd78d219155fd19a6a",
+                "configURIPath": "file:///c%3A/Users/Win11/AppData/Roaming/Antigravity/Workspaces/1766691551676/workspace.json"
             }
         ],
+        "folders": [],
         "emptyWindows": []
     },
     "windowControlHeight": 35,
     "profileAssociations": {
         "workspaces": {
             "file:///c%3A/Users/Win11/win11-after-installation": "__default__profile__",
-            "file:///c%3A/Users/Win11/.gemini/antigravity/playground/quantum-curiosity": "__default__profile__"
+            "file:///c%3A/Users/Win11/.gemini/antigravity/playground/quantum-curiosity": "__default__profile__",
+            "file:///c%3A/Users/Win11/AppData/Roaming/Antigravity/Workspaces/1766691551676/workspace.json": "__default__profile__"
         },
         "emptyWindows": {}
     },
     "windowsState": {
         "lastActiveWindow": {
-            "folder": "file:///c%3A/Users/Win11/win11-after-installation",
-            "backupPath": "C:\\Users\\Win11\\AppData\\Roaming\\Antigravity\\Backups\\663b2e1bd4e6699441857fb41e4b1498",
+            "workspaceIdentifier": {
+                "id": "5c40155c8f9f3cfd78d219155fd19a6a",
+                "configURIPath": "file:///c%3A/Users/Win11/AppData/Roaming/Antigravity/Workspaces/1766691551676/workspace.json"
+            },
+            "backupPath": "C:\\Users\\Win11\\AppData\\Roaming\\Antigravity\\Backups\\5c40155c8f9f3cfd78d219155fd19a6a",
             "uiState": {
-                "mode": 1,
+                "mode": 0,
                 "x": 0,
                 "y": 0,
                 "width": 1152,
                 "height": 1248
             }
         },
-        "openedWindows": [
-            {
-                "folder": "file:///c%3A/Users/Win11/win11-after-installation",
-                "backupPath": "C:\\Users\\Win11\\AppData\\Roaming\\Antigravity\\Backups\\663b2e1bd4e6699441857fb41e4b1498",
-                "uiState": {
-                    "mode": 1,
-                    "x": 0,
-                    "y": 0,
-                    "width": 1152,
-                    "height": 1248
-                }
-            }
-        ]
+        "openedWindows": []
     },
     "unifiedStateSync.hasTrajectorySummariesMigrated": true,
     "antigravityUnifiedStateSync.agentPreferences.hasPlanningModeMigrated": true,
@@ -81,22 +71,26 @@
             "editorPartMinWidth": 220,
             "titleBarHeight": 35,
             "activityBarWidth": 42,
-            "sideBarWidth": 300,
-            "auxiliaryBarWidth": 0,
+            "sideBarWidth": 356,
+            "auxiliaryBarWidth": 689,
             "statusBarHeight": 22,
             "windowBorder": false
         }
     },
     "windowSplashWorkspaceOverride": {
         "layoutInfo": {
-            "sideBarWidth": 300,
-            "auxiliaryBarWidth": 441,
+            "sideBarWidth": 356,
+            "auxiliaryBarWidth": 689,
             "workspaces": {
                 "d157be8690878e593c5a3dbd483ee47a": {
                     "sideBarVisible": true,
-                    "auxiliaryBarVisible": false
+                    "auxiliaryBarVisible": true
                 },
                 "5616a4fcd25ce67994ed51de30b184e0": {
+                    "sideBarVisible": true,
+                    "auxiliaryBarVisible": true
+                },
+                "5c40155c8f9f3cfd78d219155fd19a6a": {
                     "sideBarVisible": true,
                     "auxiliaryBarVisible": true
                 }
