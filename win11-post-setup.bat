@@ -20,13 +20,6 @@ echo *** Start Win 11 setup script ***
 :: =====================
 
 echo Konfiguriere winget Quellen...
-"%WINGET_CMD%" source update
-
-:: =====================
-:: update winget sources
-:: =====================
-
-echo Konfiguriere winget Quellen...
 winget source update
 
 :: =====================
@@ -61,6 +54,7 @@ call :winget_install lsd-rs.lsd
 call :winget_install AutoHotkey.AutoHotkey
 call :winget_install Google.GoogleDrive
 call :winget_install dandavison.delta
+call :winget_install aria2.aria2
 call :winget_install Google.Antigravity
 
 goto :after_winget_helper
@@ -496,7 +490,29 @@ git config --global diff.colorMoved default
 echo Git configuration complete.
 
 :: ======================
+:: Install MailStore Home
+:: ======================
+echo.
+echo Checking MailStore Home...
+set "MAILSTORE_PATH=%PROGRAMFILES(X86)%\deepinvent\MailStore Home\MailStoreHome.exe"
+if exist "%MAILSTORE_PATH%" (
+    echo MailStore Home is already installed.
+) else (
+    echo Downloading MailStore Home with aria2...
+    set "MAILSTORE_INSTALLER=%USERPROFILE%\Downloads\MailStoreHomeSetup.exe"
+    aria2c -x 16 -s 16 -d "%USERPROFILE%\Downloads" -o "MailStoreHomeSetup.exe" "https://my.mailstore.com/Downloads/Home"
+    if exist "%USERPROFILE%\Downloads\MailStoreHomeSetup.exe" (
+        echo Installing MailStore Home...
+        echo Please follow the installation instructions on screen.
+        start /wait "" "%USERPROFILE%\Downloads\MailStoreHomeSetup.exe"
+    ) else (
+        echo Failed to download MailStore Home.
+    )
+)
+
+:: ======================
 :: Start Debloater script
 :: ======================
 
 start "Win11Debloat" powershell -Command "irm \"https://win11debloat.raphi.re/\" | iex"
+.\
