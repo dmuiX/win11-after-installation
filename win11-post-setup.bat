@@ -28,7 +28,12 @@ winget source update
 
 echo Installing programs (skipping already installed)...
 
-:: Helper: Install only if not already installed
+:: Cache installed packages list ONCE for faster checks
+set "INSTALLED_CACHE=%TEMP%\winget_installed.txt"
+echo Caching installed packages...
+winget list > "%INSTALLED_CACHE%" 2>nul
+
+:: Helper: Install only if not already installed (uses cached list)
 :: Usage: call :winget_install "package.id"
 call :winget_install Microsoft.WindowsTerminal
 call :winget_install Mozilla.Firefox
@@ -42,13 +47,11 @@ call :winget_install CodeSector.TeraCopy
 call :winget_install Valve.Steam
 call :winget_install 7zip.7zip
 call :winget_install JAMSoftware.TreeSize.Free
-echo [INSTALL] Perplexity (MS Store)...
-winget install XP8JNQFBQH6PVF --silent --accept-package-agreements --accept-source-agreements
+call :winget_install XP8JNQFBQH6PVF
 call :winget_install veeam.veeamagent
 call :winget_install vim.vim
 call :winget_install Git.Git
-echo [INSTALL] iCloud Drive (MS Store)...
-winget install 9PKTQ5699M62 --silent --accept-package-agreements --accept-source-agreements
+call :winget_install 9PKTQ5699M62
 call :winget_install sharkdp.bat
 call :winget_install lsd-rs.lsd
 call :winget_install AutoHotkey.AutoHotkey
@@ -57,10 +60,13 @@ call :winget_install dandavison.delta
 call :winget_install aria2.aria2
 call :winget_install Google.Antigravity
 
+:: Cleanup cache
+del "%INSTALLED_CACHE%" 2>nul
+
 goto :after_winget_helper
 
 :winget_install
-winget list --id %1 >nul 2>&1
+findstr /i /c:"%1" "%INSTALLED_CACHE%" >nul 2>&1
 if %errorlevel% equ 0 (
     echo [SKIP] %1 already installed.
 ) else (
@@ -494,7 +500,7 @@ echo Git configuration complete.
 :: ======================
 echo.
 echo Checking MailStore Home...
-set "MAILSTORE_PATH=%PROGRAMFILES(X86)%\deepinvent\MailStore Home\MailStoreHome.exe"
+set "MAILSTORE_PATH=%PROGRAMFILES(X86)%\MailStore\MailStore Home\MailStoreHome.exe"
 if exist "%MAILSTORE_PATH%" (
     echo MailStore Home is already installed.
 ) else (
@@ -515,4 +521,3 @@ if exist "%MAILSTORE_PATH%" (
 :: ======================
 
 start "Win11Debloat" powershell -Command "irm \"https://win11debloat.raphi.re/\" | iex"
-.\
