@@ -26,18 +26,18 @@ winget source update
 :: winget installations
 :: =====================
 
-echo Installing programs (skipping already installed)...
+echo Installing programs...
 
 :: Cache installed packages list ONCE for faster checks
 set "INSTALLED_CACHE=%TEMP%\winget_installed.txt"
-echo Caching installed packages...
+echo Caching installed packages (this may take a moment)...
 winget list > "%INSTALLED_CACHE%" 2>nul
 
-:: Helper: Install only if not already installed (uses cached list)
+:: Helper: Install only if not already installed
 :: Usage: call :winget_install "package.id"
 call :winget_install Microsoft.WindowsTerminal
 call :winget_install Mozilla.Firefox
-call :winget_install openhashtab
+call :winget_install namazso.OpenHashTab
 call :winget_install Microsoft.VisualStudioCode.Insiders
 call :winget_install gerardog.gsudo
 call :winget_install Starship.Starship
@@ -47,18 +47,17 @@ call :winget_install CodeSector.TeraCopy
 call :winget_install Valve.Steam
 call :winget_install 7zip.7zip
 call :winget_install JAMSoftware.TreeSize.Free
-call :winget_install XP8JNQFBQH6PVF
+call :winget_install Perplexity.Perplexity
 call :winget_install veeam.veeamagent
 call :winget_install vim.vim
 call :winget_install Git.Git
-call :winget_install 9PKTQ5699M62
+call :winget_install Apple.iCloud
 call :winget_install sharkdp.bat
 call :winget_install lsd-rs.lsd
 call :winget_install AutoHotkey.AutoHotkey
 call :winget_install Google.GoogleDrive
 call :winget_install dandavison.delta
 call :winget_install aria2.aria2
-call :winget_install Google.Antigravity
 
 :: Cleanup cache
 del "%INSTALLED_CACHE%" 2>nul
@@ -66,14 +65,35 @@ del "%INSTALLED_CACHE%" 2>nul
 goto :after_winget_helper
 
 :winget_install
+:: Check cache first
 findstr /i /c:"%1" "%INSTALLED_CACHE%" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [SKIP] %1 already installed.
-) else (
-    echo [INSTALL] %1...
-    winget install --id %1 --silent --accept-package-agreements --accept-source-agreements
-    if %errorlevel% neq 0 echo [ERROR] Failed to install %1
+    echo [SKIP] %1 already installed (found in cache).
+    exit /b
 )
+
+:: Try to install/upgrade.
+:: Codes:
+:: 0 = Success
+:: -1978335189 (0x8A15002B) = No update available / Already installed
+:: 2359296043 (same as above unsigned)
+:: 3010 = Reboot required
+echo [CHECK] %1
+winget install --id %1 --silent --accept-package-agreements --accept-source-agreements
+set "EXIT_CODE=%errorlevel%"
+
+if "%EXIT_CODE%"=="0" (
+    echo [OK] %1 installed successfully.
+) else if "%EXIT_CODE%"=="-1978335189" (
+    echo [SKIP] %1 already installed/no update.
+) else if "%EXIT_CODE%"=="2359296043" (
+    echo [SKIP] %1 already installed/no update.
+) else if "%EXIT_CODE%"=="3010" (
+    echo [OK] %1 installed (Reboot required).
+) else (
+    echo [ERROR] Failed to install %1. Exit code: %EXIT_CODE%
+)
+echo.
 exit /b
 
 :after_winget_helper
