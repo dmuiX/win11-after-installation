@@ -1,0 +1,9 @@
+ls=lsd -l
+ll=lsd -la --size=short --date=relative
+llrt=lsd -lart
+llrs=ll -lars
+vi=vim $*
+k=kubectl $*
+mv=move
+rm=del $*
+cat=bat $*
