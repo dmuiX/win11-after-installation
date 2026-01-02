@@ -256,11 +256,45 @@ if (-not (Test-Path "${env:ProgramFiles(x86)}\MailStore\MailStore Home\MailStore
     if (Test-Path $ms) { Start-Process $ms -Wait }
 }
 
+# ============================
+# RDP Auto-Suspend (Optional)
+# ============================
+# Suspends VM on Linux host when RDP disconnects
+$autoSuspendTask = "AutoSuspend-RDP"
+$existingTask = schtasks /query /tn $autoSuspendTask 2>&1
+if ($existingTask -match "ERROR|does not exist") {
+    $LinuxHost = "192.168.1.5"
+    $LinuxUser = "nasadmin"
+    $VMName = "Win11"
+    
+    # Create suspend script
+    $SuspendScript = "$env:ProgramData\rdp-suspend.ps1"
+    "ssh ${LinuxUser}@${LinuxHost} `"virsh -c qemu:///system suspend ${VMName}`"" | Set-Content $SuspendScript
+    
+    # Create scheduled task
+    schtasks /create /tn $autoSuspendTask `
+        /tr "pwsh.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$SuspendScript`"" `
+        /sc ONEVENT /ec "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" `
+        /mo "*[System[Provider[@Name='Microsoft-Windows-TerminalServices-LocalSessionManager'] and (EventID=24)]]" `
+        /ru "$env:USERDOMAIN\$env:USERNAME" /it /f | Out-Null
+    
+    if ($LASTEXITCODE -eq 0) { Show-OK "Auto-Suspend task created." }
+    else { Show-Error "Auto-Suspend task failed." }
+} else {
+    Write-Host " [SKIP] Auto-Suspend task exists" -ForegroundColor DarkGray
+}
+
 # ======================
 # Start Debloater script
 # ======================
-Show-Header "Launching Debloater"
-Start-Process powershell -ArgumentList "irm `"https://win11debloat.raphi.re/`" | iex"
+$debloatMarker = "$env:USERPROFILE\.debloat-done"
+if (-not (Test-Path $debloatMarker)) {
+    Show-Header "Launching Debloater"
+    Start-Process powershell -ArgumentList "irm `"https://win11debloat.raphi.re/`" | iex"
+    $null = New-Item $debloatMarker -ItemType File -Force
+} else {
+    Write-Host " [SKIP] Debloater already run" -ForegroundColor DarkGray
+}
 
 Show-Header "Setup Complete!"
 Read-Host "Press Enter to exit"
