@@ -33,69 +33,118 @@ cat << 'EOF' > /usr/local/bin/rdp-wake-wrapper.sh
 # 1. Save the Socket (Stdout) to FD 3 so we can use it later
 exec 3>&1
 
-# 2. Redirect standard 'echo' output to Stderr (Log) 
+# 2. Redirect standard 'echo' output to Stderr (Log)
 #    so we don't send text "DEBUG:..." to the RDP Client (which corrupts the connection)
 exec 1>&2
 
 echo "Wrapper: Starting RDP Wake Sequence..."
 
-# --- WAKE LOGIC ---
+# --- WAKE LOGIC (no locking needed - virsh operations are idempotent) ---
 if [ -x "/usr/bin/virsh" ]; then VIRSH="/usr/bin/virsh"; else VIRSH=$(command -v virsh); fi
+VM_NAME="Win11"
 
 if [ -n "$VIRSH" ]; then
-    echo "Wrapper: Checking VM state..."
-    STATE=$($VIRSH domstate Win11 2>/dev/null || echo "unknown")
+    echo "Wrapper: Checking VM state for '$VM_NAME'..."
+    STATE=$($VIRSH domstate "$VM_NAME" 2>/dev/null | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]' || echo "unknown")
+    echo "Wrapper: Current state is '$STATE'"
     
     case "$STATE" in
-        running)
+        "running")
             echo "Wrapper: VM is already running."
             ;;
-        paused)
+        "paused")
             echo "Wrapper: VM is paused, resuming..."
-            $VIRSH resume Win11 || echo "Wrapper: Warn - Failed to resume VM"
+            $VIRSH resume "$VM_NAME" || echo "Wrapper: Warn - Failed to resume VM"
             ;;
-        "shut off"|"")
-            echo "Wrapper: VM is off, starting..."
-            $VIRSH start Win11 || echo "Wrapper: Warn - Failed to start VM"
+        "pmsuspended")
+            echo "Wrapper: VM is suspended (sleep). Waking up..."
+            $VIRSH dompmwakeup "$VM_NAME" || $VIRSH start "$VM_NAME" || echo "Wrapper: Warn - Failed to wakeup VM"
+            ;;
+        "shutoff"|""|"unknown")
+            echo "Wrapper: VM is off/unknown, starting..."
+            $VIRSH start "$VM_NAME" || echo "Wrapper: Warn - Failed to start VM"
+            sleep 1
             ;;
         *)
-            echo "Wrapper: Unknown state '$STATE', attempting start..."
-            $VIRSH start Win11 || echo "Wrapper: Warn - Failed to start VM"
+            echo "Wrapper: Unexpected state '$STATE', attempting start..."
+            $VIRSH start "$VM_NAME" || echo "Wrapper: Warn - Failed to start VM"
             ;;
     esac
 else
     echo "Wrapper: Warn - virsh not found, skipping wake."
 fi
 
+# --- WAIT FOR RDP PORT ---
 IP="192.168.1.13"
 PORT="3389"
 echo "Wrapper: Waiting for port $IP:$PORT..."
-# Wait loop
-MAX=60
+
+MAX=180
 count=0
 while ! nc -z -w 1 "$IP" "$PORT"; do
-    echo "Wrapper: Port closed ($count)..."
+    if (( count % 5 == 0 )); then
+        echo "Wrapper: Port closed ($count/$MAX)..."
+    fi
     sleep 1
     count=$((count+1))
     if [ "$count" -ge "$MAX" ]; then
-        echo "Wrapper: Timeout waiting for VM."
+        echo "Wrapper: Timeout waiting for VM to boot."
         exit 1
     fi
 done
 
-echo "Wrapper: Port Ready. Swapping FDs for Proxy..."
+echo "Wrapper: Port Detected. Stabilizing (3s)..."
+sleep 3
 
-# --- HANDOVER ---
+echo "Wrapper: Ready. Swapping FDs for Proxy..."
 
-# 3. Restore the Socket to Stdout (from FD 3)
+# --- HANDOVER TO SOCAT ---
 exec 1>&3
-# 4. Close FD 3 (cleanup)
 exec 3>&-
 
-# 5. Hand over control to socat
-#    socat inherits FD 0 (Input Socket) and FD 1 (Output Socket)
 echo "Wrapper: Executing socat..." >&2
-exec /usr/bin/socat STDIO "TCP:$IP:$PORT,retry=5"
+
+SESSION_START=$(date +%s)
+/usr/bin/socat STDIO "TCP:$IP:$PORT,retry=5"
+SESSION_END=$(date +%s)
+SESSION_DURATION=$((SESSION_END - SESSION_START))
+MIN_SESSION=10
+
+# --- CLEANUP (Suspend Decision) ---
+echo "Wrapper: RDP Disconnected after ${SESSION_DURATION}s. Checking if should suspend..." >&2
+sleep 2  # Let Windows shutdown start if that's what's happening
+
+# Check 1: Other wrapper instances still running?
+OTHER_WRAPPERS=$(pgrep -f "rdp-wake-wrapper" | grep -v $$ | wc -l)
+if [ "$OTHER_WRAPPERS" -gt 0 ]; then
+    echo "Wrapper: $OTHER_WRAPPERS other connection(s) active, not suspending." >&2
+    exit 0
+fi
+
+# Check 2: Session too short? (failed connection)
+if [ "$SESSION_DURATION" -lt "$MIN_SESSION" ]; then
+    echo "Wrapper: Session too short (${SESSION_DURATION}s < ${MIN_SESSION}s), not suspending." >&2
+    exit 0
+fi
+
+# Check 3: Is Windows still running? (port open AND guest agent responds)
+PORT_OPEN="no"
+nc -z -w 2 "$IP" "$PORT" && PORT_OPEN="yes"
+
+AGENT_OK="no"
+$VIRSH qemu-agent-command "$VM_NAME" '{"execute":"guest-ping"}' >/dev/null 2>&1 && AGENT_OK="yes"
+
+echo "Wrapper: Port 3389 open: $PORT_OPEN, Guest agent responds: $AGENT_OK" >&2
+
+if [ "$PORT_OPEN" = "yes" ] && [ "$AGENT_OK" = "yes" ]; then
+    # Windows is running normally = User just closed RDP = Suspend
+    echo "Wrapper: Windows running normally. Suspending VM..." >&2
+    $VIRSH suspend "$VM_NAME" || echo "Wrapper: Warn - Failed to suspend VM"
+else
+    # Windows is shutting down or restarting = Don't suspend
+    echo "Wrapper: Windows appears to be shutting down or restarting. Not suspending." >&2
+fi
+
 EOF
 chmod +x /usr/local/bin/rdp-wake-wrapper.sh
 echo "✅ Wrapper created."
@@ -129,7 +178,7 @@ ExecStart=/usr/local/bin/rdp-wake-wrapper.sh
 StandardInput=socket
 StandardOutput=socket
 StandardError=journal
-TimeoutStartSec=120
+TimeoutStartSec=300
 EOF
 
 # 5. Reload and Restart
