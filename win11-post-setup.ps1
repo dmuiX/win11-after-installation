@@ -1,15 +1,51 @@
 # Requires -Version 7.0
 $ErrorActionPreference = "Stop"
 $ScriptRoot ??= $PSScriptRoot
+$restartRequired = $false
 
 # --- Helpers ---
 function Show-Header ([string]$t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
 function Show-OK ([string]$t) { Write-Host " [OK] $t" -ForegroundColor Green }
 function Show-Error ([string]$t) { Write-Host " [ERROR] $t" -ForegroundColor Red }
 
+function Reset-WindowsUpdate {
+    Write-Host " [FIX] Resetting Windows Update & Killing Stuck Processes..." -ForegroundColor Yellow
+    
+    # Kill stuck processes
+    "TiWorker","wusa","dism","trustedinstaller" | ForEach-Object {
+        Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+
+    # Stop Services
+    "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
+        Stop-Service -Name $_ -Force -ErrorAction SilentlyContinue
+    }
+
+    # Clear Cache (Aggressive)
+    $sd = "C:\Windows\SoftwareDistribution"
+    if (Test-Path $sd) {
+        Rename-Item -Path $sd -NewName "SoftwareDistribution.old.$(Get-Date -Format 'HHmmss')" -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Restart Services
+    "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
+        Start-Service -Name $_ -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 5
+}
+
 # --- Admin Check ---
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Show-Error "Administrative privileges required."; exit 1
+}
+
+# Enable winget for PowerShell 7
+$wingetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
+if (Test-Path $wingetPath) {
+    Set-Alias -Name winget -Value $wingetPath -Force
+} else {
+    Write-Error "winget.exe not found at $wingetPath"
+    exit 1
 }
 
 Show-Header "Win 11 Setup (PS7 Refined)"
@@ -25,7 +61,7 @@ try { winget source update 2>$null } catch {}
 # =====================
 Show-Header "Installing programs..."
 $packages = @(
-    "Microsoft.WindowsTerminal", "Mozilla.Firefox", "openhashtab", "Microsoft.VisualStudioCode.Insiders",
+    "Microsoft.WindowsTerminal", "Mozilla.Firefox", "namazso.OpenHashTab", "Microsoft.VisualStudioCode.Insiders",
     "gerardog.gsudo", "Starship.Starship", "chrisant996.Clink", "DEVCOM.JetBrainsMonoNerdFont",
     "CodeSector.TeraCopy", "Valve.Steam", "7zip.7zip", "JAMSoftware.TreeSize.Free",
     "veeam.veeamagent", "vim.vim", "Git.Git", "sharkdp.bat", "lsd-rs.lsd", "AutoHotkey.AutoHotkey",
@@ -205,11 +241,31 @@ Show-OK "Privacy tweaks applied."
 # ======================
 # Download & Install Meslo Font
 # ======================
-Show-Header "Installing Fonts..."
-$fontPath = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts\MesloLGS NF Regular.ttf"
-$fontPathSystem = "C:\Windows\Fonts\MesloLGS NF Regular.ttf"
-if ((Test-Path $fontPath) -or (Test-Path $fontPathSystem)) {
-    Write-Host " [SKIP] Fonts already installed" -ForegroundColor DarkGray
+$fontsInstalled = $false
+
+# Strategy 1: Registry Check (Fastest)
+$fontRegUser = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+$fontRegSystem = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
+if ((Test-Path $fontRegUser) -and (Get-ItemProperty $fontRegUser -Name "*MesloLGS NF*" -ErrorAction SilentlyContinue)) { $fontsInstalled = $true }
+if (-not $fontsInstalled -and (Test-Path $fontRegSystem) -and (Get-ItemProperty $fontRegSystem -Name "*MesloLGS NF*" -ErrorAction SilentlyContinue)) { $fontsInstalled = $true }
+
+# Strategy 2: Physical File Check (Wildcard)
+if (-not $fontsInstalled) {
+    if (Test-Path "$env:LOCALAPPDATA\Microsoft\Windows\Fonts\*MesloLGS NF*") { $fontsInstalled = $true }
+    if (Test-Path "C:\Windows\Fonts\*MesloLGS NF*") { $fontsInstalled = $true }
+}
+
+# Strategy 3: .NET GDI Check (Most Accurate but slower)
+if (-not $fontsInstalled) {
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $installedFonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families
+        if ($installedFonts | Where-Object { $_.Name -like "MesloLGS NF*" }) { $fontsInstalled = $true }
+    } catch {}
+}
+
+if ($fontsInstalled) {
+    Write-Host " [SKIP] Meslo Fonts already registered." -ForegroundColor DarkGray
 } else {
     $links = @("Regular", "Bold", "Italic", "Bold%20Italic") | % { "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20$_.ttf" }
     $dl = "$env:TEMP\Fonts"; $null = New-Item $dl -ItemType Directory -Force
@@ -220,25 +276,101 @@ if ((Test-Path $fontPath) -or (Test-Path $fontPathSystem)) {
 }
 
 # ============================
-# Install RSAT Tools
+# Install RSAT Tools (Separate Window)
 # ============================
-Show-Header "Installing RSAT Tools..."
-$rsatFeatures = @(
-    "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0",
-    "Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0",
-    "Rsat.Dns.Tools~~~~0.0.1.0",
-    "Rsat.ServerManager.Tools~~~~0.0.1.0"
-)
-foreach ($feature in $rsatFeatures) {
-    $state = Get-WindowsCapability -Online -Name $feature -EA 0
-    if ($state.State -eq "Installed") {
-        Write-Host " [SKIP] $($feature.Split('.')[1])" -ForegroundColor DarkGray
-    } else {
-        Write-Host " [INSTALL] $($feature.Split('.')[1])..."
-        Add-WindowsCapability -Online -Name $feature -EA 0 | Out-Null
+Show-Header "Launching RSAT Tools Installation in New Window..."
+
+$rsatWorker = "$env:TEMP\Install-RSAT-Worker.ps1"
+$rsatContent = @'
+    $ErrorActionPreference = "Stop"
+    
+    # --- Embedded Helpers ---
+    function Show-Header ([string]$t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
+    function Show-OK ([string]$t) { Write-Host " [OK] $t" -ForegroundColor Green }
+    function Show-Error ([string]$t) { Write-Host " [ERROR] $t" -ForegroundColor Red }
+    
+    function Reset-WindowsUpdate {
+        Write-Host " [FIX] Resetting Windows Update & Killing Stuck Processes..." -ForegroundColor Yellow
+        
+        "TiWorker","wusa","dism","trustedinstaller" | ForEach-Object {
+            Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        }
+        "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
+            Stop-Service -Name $_ -Force -ErrorAction SilentlyContinue
+        }
+
+        $sd = "C:\Windows\SoftwareDistribution"
+        if (Test-Path $sd) {
+             # Rename with timestamp to avoid collision
+            Rename-Item -Path $sd -NewName "SoftwareDistribution.old.$(Get-Date -Format 'HHmmss')" -Force -ErrorAction SilentlyContinue
+        }
+        
+        "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
+            Start-Service -Name $_ -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+        }
+        Start-Sleep -Seconds 5
     }
+
+    Show-Header "RSAT Tools Installation"
+    Write-Host "This window will stay open so you can review the results." -ForegroundColor Gray
+    
+    $rsatFeatures = @(
+        "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0",
+        "Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0",
+        "Rsat.Dns.Tools~~~~0.0.1.0",
+        "Rsat.ServerManager.Tools~~~~0.0.1.0"
+    )
+    
+    # Preemptive cleanup if any are missing
+    $missingRsat = $rsatFeatures | Where-Object { 
+        (Get-WindowsCapability -Online -Name $_ -ErrorAction SilentlyContinue).State -ne 'Installed' 
+    }
+    if ($missingRsat) {
+        Write-Host " [PRE-FIX] Detected missing RSAT tools. Running preemptive cleanup..." -ForegroundColor Yellow
+        Reset-WindowsUpdate
+    }
+
+    foreach ($feature in $rsatFeatures) {
+        try {
+            $state = Get-WindowsCapability -Online -Name $feature -ErrorAction SilentlyContinue
+            $shortName = $feature.Split('.')[1]
+
+            if ($state.State -eq "Installed") {
+                Write-Host " [SKIP] $shortName" -ForegroundColor DarkGray
+            } else {
+                Write-Host " [INSTALL] $shortName..."
+                
+                try {
+                    Add-WindowsCapability -Online -Name $feature -ErrorAction Stop
+                    Show-OK "$shortName installed."
+                } catch {
+                     Show-Error "First attempt failed. Retrying..."
+                     Reset-WindowsUpdate
+                     try {
+                        Add-WindowsCapability -Online -Name $feature -ErrorAction Stop
+                        Show-OK "$shortName installed/repaired."
+                     } catch {
+                        Show-Error "Failed to install ${shortName}: $_"
+                     }
+                }
+            }
+        } catch {
+             Show-Error "Exception checking $($feature): $_"
+        }
+    }
+    Show-OK "RSAT Installation Process Finished."
+    Write-Host "You can close this window now." -ForegroundColor Cyan
+'@
+
+Set-Content -Path $rsatWorker -Value $rsatContent -Force
+try {
+    Start-Process powershell -ArgumentList "-NoProfile", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", "$rsatWorker" -WindowStyle Normal -ErrorAction Stop
+    Write-Host " [INFO] RSAT installation spawned in a new window." -ForegroundColor Gray
+} catch {
+    Show-Error "Failed to spawn RSAT window: $_"
 }
-Show-OK "RSAT tools configured."
+
 
 # ============================
 # SSH Agent & Git Config
@@ -284,17 +416,77 @@ if ($existingTask -match "ERROR|does not exist") {
     Write-Host " [SKIP] Auto-Suspend task exists" -ForegroundColor DarkGray
 }
 
+# ============================
+# Network & Domain Configuration
+# ============================
 # ======================
 # Start Debloater script
 # ======================
 $debloatMarker = "$env:USERPROFILE\.debloat-done"
 if (-not (Test-Path $debloatMarker)) {
     Show-Header "Launching Debloater"
-    Start-Process powershell -ArgumentList "irm `"https://win11debloat.raphi.re/`" | iex"
+    # Added -NoExit so user can see output/errors
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "irm https://win11debloat.raphi.re/ | iex" 
     $null = New-Item $debloatMarker -ItemType File -Force
 } else {
     Write-Host " [SKIP] Debloater already run" -ForegroundColor DarkGray
 }
 
+# ============================
+# Network & Domain Configuration
+# ============================
+Show-Header "Network & Domain Config"
+
+# 1. IPv6 Nuclear Option
+$ipv6Key = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters"
+$ipv6Val = "DisabledComponents"
+$ipv6Data = 0xFF # 255 - Completely disable IPv6
+$regVal = (Get-ItemProperty $ipv6Key -Name $ipv6Val -ErrorAction SilentlyContinue).$ipv6Val
+
+if ($regVal -ne $ipv6Data) {
+    if (-not (Test-Path $ipv6Key)) { New-Item $ipv6Key -Force | Out-Null }
+    Set-ItemProperty -Path $ipv6Key -Name $ipv6Val -Value $ipv6Data -Type DWord -Force
+    Show-OK "IPv6 Registry updated to 0xFF."
+    $restartRequired = $true
+} else {
+    Write-Host " [OK] IPv6 Registry is correctly set to 0xFF." -ForegroundColor Green
+}
+
+# Check if IPv6 is actually active (requires reboot to apply Reg)
+# User feedback: The binding check can be misleading if registry is set but adapter shows enabled.
+# We are trusting the Registry Key 0xFF as the source of truth for "Disabled".
+if ($regVal -eq $ipv6Data) {
+    Write-Host " [OK] IPv6 Registry logic satisfied." -ForegroundColor Green
+}
+
+# 2. Join Domain
+$domain = "h-lab.org"
+$compSys = Get-CimInstance Win32_ComputerSystem
+if ($compSys.PartOfDomain -and ($compSys.Domain -eq $domain)) {
+    Write-Host " [SKIP] Already joined to $domain" -ForegroundColor DarkGray
+} else {
+    Write-Host " [DOMAIN] Joining $domain..."
+    try {
+        # Try joining. If it fails due to IPv6 context, it will catch.
+        Add-Computer -DomainName $domain -ErrorAction Stop
+        Show-OK "Joined $domain. One final reboot required."
+        $restartRequired = $true
+    } catch {
+        Show-Error "Failed to join domain: $_"
+        Write-Host "Please check connectivity, credentials, or IPv6 status." -ForegroundColor Yellow
+    }
+}
+
+
+
 Show-Header "Setup Complete!"
+
+if ($restartRequired) {
+    Write-Host "RESTART REQUIRED: IPv6 disabled or Domain Join performed." -ForegroundColor Red
+    $response = Read-Host "Restart now? (y/n)"
+    if ($response -match "^y") { Restart-Computer -Force }
+} else {
+    Write-Host "No critical system changes requiring restart were applied." -ForegroundColor Green
+}
+Write-Host "Make sure to check the RSAT window for completion!" -ForegroundColor Cyan
 Read-Host "Press Enter to exit"
