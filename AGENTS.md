@@ -1,12 +1,19 @@
+AGENTS.md
+
+This repository contains plain HTML, CSS, and JavaScript.
+Follow the conventions below strictly when contributing.
+
+⸻
+
+Commit messages
+
+Use Conventional Commits:
+
+type(scope optional): short imperative
 # AGENTS.md
 
-## Commit messages
-- Use Conventional Commits: type(scope optional): short imperative
-- Allowed types: feat, fix, docs, chore, refactor, test, perf, ci, build
-- Examples:
-  - feat: standardize mail checks in backup and sync
-  - fix: log effective borg maintenance flags
-  - docs: explain borg maintenance flags
+This repository contains plain HTML, CSS, and JavaScript.  
+Follow the conventions below strictly when contributing.
 
 ## Shell script conventions (.sh)
 - Strict mode: `set -euo pipefail`
