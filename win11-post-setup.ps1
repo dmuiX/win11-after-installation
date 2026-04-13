@@ -1,15 +1,31 @@
 # Requires -Version 7.0
 param(
+    [switch]$FixWinget,      # fix AD profile path + reset winget sources
+    [switch]$InstallPackages, # install packages via winget
     [switch]$FixPath,        # fix git, vim, starship path
     [switch]$StarshipConfig, # starship config
     [switch]$Aliases,        # setup aliases
     [switch]$Vimrc,          # add .vimrc
     [switch]$MacosHotkeys,   # add macos-hotkeys.ahk
-    [switch]$OnlyAllSwitches # run all 5 sections above, skip the rest
+    [switch]$Cleanup,        # configure disk cleanup
+    [switch]$Maintenance,    # schedule maintenance tasks
+    [switch]$RestoreVsCode,  # restore VS Code settings & extensions
+    [switch]$WingetUpdate,   # upgrade all installed packages
+    [switch]$Privacy,        # privacy & UI registry tweaks
+    [switch]$Fonts,          # install Meslo NF fonts
+    [switch]$RSAT,           # install RSAT tools
+    [switch]$GitConfig,      # configure SSH agent & git
+    [switch]$MailStore,      # install MailStore Home
+    [switch]$RdpSuspend,     # RDP auto-suspend scheduled task
+    [switch]$Debloat,        # run win11 debloater
+    [switch]$Network,        # disable IPv6 + join domain
+    [switch]$OnlyConfig      # shorthand: FixPath+StarshipConfig+Aliases+Vimrc+MacosHotkeys
 )
-if ($OnlyAllSwitches) { $FixPath = $StarshipConfig = $Aliases = $Vimrc = $MacosHotkeys = $true }
+if ($OnlyConfig) { $FixPath = $StarshipConfig = $Aliases = $Vimrc = $MacosHotkeys = $true }
 # If any switch is passed, only run the flagged sections; otherwise run everything.
-$selective = $FixPath -or $StarshipConfig -or $Aliases -or $Vimrc -or $MacosHotkeys
+$selective = $FixWinget -or $InstallPackages -or $FixPath -or $StarshipConfig -or $Aliases -or $Vimrc -or $MacosHotkeys -or
+             $Cleanup -or $Maintenance -or $RestoreVsCode -or $WingetUpdate -or $Privacy -or $Fonts -or
+             $RSAT -or $GitConfig -or $MailStore -or $RdpSuspend -or $Debloat -or $Network
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot ??= $PSScriptRoot
@@ -23,7 +39,7 @@ function Show-Error ([string]$t) { Write-Host " [ERROR] $t" -ForegroundColor Red
 
 function Reset-WindowsUpdate {
     Write-Host " [FIX] Resetting Windows Update & Killing Stuck Processes..." -ForegroundColor Yellow
-    
+
     # Kill stuck processes
     "TiWorker","wusa","dism","trustedinstaller" | ForEach-Object {
         Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -39,7 +55,7 @@ function Reset-WindowsUpdate {
     if (Test-Path $sd) {
         Rename-Item -Path $sd -NewName "SoftwareDistribution.old.$(Get-Date -Format 'HHmmss')" -Force -ErrorAction SilentlyContinue
     }
-    
+
     # Restart Services
     "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
         Start-Service -Name $_ -ErrorAction SilentlyContinue
@@ -52,9 +68,11 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Show-Error "Administrative privileges required."; exit 1
 }
 
-if (-not $selective) {
+Show-Header "Win 11 Setup (PS7 Refined)"
 
-# Enable winget for PowerShell 7
+# Resolve winget path whenever any winget-related section will run.
+if (-not $selective -or $FixWinget -or $InstallPackages -or $WingetUpdate) {
+
 # When elevated on AD, $env:LOCALAPPDATA may resolve to the wrong profile.
 # Use the logged-on user's profile explicitly via the registry.
 $loggedOnUser = (Get-CimInstance Win32_ComputerSystem).UserName  # DOMAIN\username
@@ -70,25 +88,28 @@ if (Test-Path $wingetPath) {
     exit 1
 }
 
-Show-Header "Win 11 Setup (PS7 Refined)"
+} # end winget path resolution
 
 # =========================
-# update winget sources
+# AD winget fix
 # =========================
+if (-not $selective -or $FixWinget) {
+
 Show-Header "Configuring winget..."
-# Source update must run as the actual user, not the elevated token.
-# We use RunAs /trustlevel to drop elevation for this call only.
 try {
-    # Reset sources if they're broken (common on first AD login)
     winget source reset --force *>$null
     winget source add --name winget https://winget.azureedge.net/cache *>$null
     winget source update 2>$null
 } catch {}
 Show-OK "winget sources refreshed."
 
+} # end FixWinget
+
 # =====================
 # winget installations
 # =====================
+if (-not $selective -or $InstallPackages) {
+
 Show-Header "Installing programs..."
 $packages = @(
     "Microsoft.WindowsTerminal", "Mozilla.Firefox", "namazso.OpenHashTab", "Microsoft.VisualStudioCode.Insiders",
@@ -99,23 +120,26 @@ $packages = @(
     "XP8JNQFBQH6PVF", "9PKTQ5699M62"
 )
 
-$installed = (winget list --accept-source-agreements | Out-String)
+# --scope machine: forces system-wide install, avoids per-user/elevated token confusion on AD.
+# Check per-package with --id rather than bulk-parsing the full list (unreliable when elevated).
 foreach ($id in $packages) {
-    if ($installed -match [regex]::Escape($id)) {
+    $check = winget list --id $id --accept-source-agreements 2>$null | Out-String
+    if ($check -match [regex]::Escape($id)) {
         Write-Host " [SKIP] $id" -ForegroundColor DarkGray
     } else {
         Write-Host " [INSTALL] $id..."
-        winget install --id $id --silent --accept-package-agreements --accept-source-agreements
-        if ($LASTEXITCODE -eq 0) { Show-OK $id } else { Show-Error $id }
+        winget install --id $id --silent --scope machine --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -eq 0) { Show-OK $id } else { Show-Error "$id (exit $LASTEXITCODE)" }
     }
 }
 
-} # end non-selective (winget)
+} # end InstallPackages
 
 # ===========================
 # fix git, vim, starship path
 # ===========================
 if (-not $selective -or $FixPath) {
+
 Show-Header "Fixing PATH Environment Variable"
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (-not $path) { $path = "" }
@@ -144,12 +168,14 @@ if ($path -ne $newPath) {
 } else {
     Write-Host " [SKIP] PATH already correct." -ForegroundColor DarkGray
 }
+
 } # end FixPath
 
 # ===============
 # starship config
 # ===============
 if (-not $selective -or $StarshipConfig) {
+
 Show-Header "Configuring Starship..."
 $configDir = "$env:USERPROFILE\.config"
 $null = New-Item -Path $clinkDir, $configDir -ItemType Directory -Force
@@ -159,7 +185,6 @@ $null = New-Item -Path $clinkDir, $configDir -ItemType Directory -Force
 $display = "$ScriptRoot\configs\clink_display.lua"
 if (Test-Path $display) { Copy-Item $display "$clinkDir\display.lua" -Force }
 
-# Copy starship.toml from configs (or download if missing)
 $starshipSrc = "$ScriptRoot\configs\starship.toml"
 if (Test-Path $starshipSrc) {
     Copy-Item $starshipSrc "$configDir\starship.toml" -Force
@@ -170,19 +195,20 @@ if (Test-Path $starshipSrc) {
         Show-OK "Starship preset downloaded."
     } catch { Write-Host " [WARN] Starship preset failed." -ForegroundColor Yellow }
 }
+
 } # end StarshipConfig
 
 # =============
 # setup aliases
 # =============
 if (-not $selective -or $Aliases) {
+
 $aliasesSrc = "$ScriptRoot\configs\aliases"
 $aliasesDst = "$clinkDir\aliases"
 if (Test-Path $aliasesSrc) {
     Copy-Item $aliasesSrc $aliasesDst -Force
     Show-OK "Aliases copied."
 } else {
-    # Fallback: generate inline
     @("ls=lsd -l", "ll=lsd -la --size=short --date=relative", "vi=vim $*", "cat=bat $*") | Set-Content $aliasesDst
     Show-OK "Aliases generated."
 }
@@ -193,12 +219,14 @@ if ($clinkBat) {
     reg add "HKCU\Software\Microsoft\Command Processor" /v Autorun /t REG_SZ /d $cmd /f | Out-Null
     Show-OK "Clink Autorun configured."
 }
+
 } # end Aliases
 
 # ==========
 # add .vimrc
 # ==========
 if (-not $selective -or $Vimrc) {
+
 Show-Header "Setting up .vimrc"
 $vimrcSrc = "$ScriptRoot\configs\.vimrc"
 if (Test-Path $vimrcSrc) {
@@ -206,21 +234,24 @@ if (Test-Path $vimrcSrc) {
 } else {
     Show-Error ".vimrc source not found."
 }
+
 } # end Vimrc
 
 # =====================
 # add macos-hotkeys.ahk
 # =====================
 if (-not $selective -or $MacosHotkeys) {
+
 $ahkSrc = "$ScriptRoot\configs\macos-hotkeys.ahk"
 if (Test-Path $ahkSrc) { Copy-Item $ahkSrc "$env:USERPROFILE\Desktop\macos-hotkeys.ahk" -Force; Show-OK "Hotkey script copied." }
-} # end MacosHotkeys
 
-if (-not $selective) {
+} # end MacosHotkeys
 
 # ============================
 # Configure Disk Cleanup
 # ============================
+if (-not $selective -or $Cleanup) {
+
 Show-Header "Configuring Cleanup..."
 $regCleanup = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
 $caches = @("Active Setup Temp Folders", "BranchCache", "D3D Shader Cache", "Delivery Optimization Files", "Downloaded Program Files", "Internet Cache Files", "Memory Dump Files", "Old Chkdsk Files", "Setup Log Files", "System error memory dump files", "Temporary Files", "Temporary Setup Files", "Thumbnail Cache", "Update Cleanup", "Upgrade Discarded Files", "Windows Defender", "Windows Error Reporting Files")
@@ -229,9 +260,13 @@ reg add "$regCleanup\Recycle Bin" /v StateFlags0001 /t REG_DWORD /d 0 /f | Out-N
 reg add "$regCleanup\DownloadsFolder" /v StateFlags0001 /t REG_DWORD /d 0 /f | Out-Null
 Show-OK "Disk Cleanup configured."
 
+} # end Cleanup
+
 # ============================
 # Maintenance Scripts & Tasks
 # ============================
+if (-not $selective -or $Maintenance) {
+
 @(@{Src="cleanup-win.bat"; TN="WeeklyCleanup"; Sch="WEEKLY"}, @{Src="daily-update.bat"; TN="DailyWingetUpdate"; Sch="DAILY"}) | % {
     $src = "$ScriptRoot\configs\$($_.Src)"
     if (Test-Path $src) {
@@ -241,46 +276,36 @@ Show-OK "Disk Cleanup configured."
 }
 Show-OK "Maintenance tasks scheduled."
 
+} # end Maintenance
+
 # =====================================
 # Restore VS Code Settings & Extensions
 # =====================================
+if (-not $selective -or $RestoreVsCode) {
+
 $restore = "$ScriptRoot\helpers\restore-settings.ps1"
 if (Test-Path $restore) { & $restore; Show-OK "VS Code restored." }
+
+} # end RestoreVsCode
 
 # ==============
 # winget Update
 # ==============
-Show-Header "System Update..."
-function Ensure-Winget {
-    $winget = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
-    if (-not (Test-Path $winget)) {
-        Show-Error "winget.exe not found in WindowsApps. Open: ms-windows-store://pdp/?productid=9NBLGGH4NNS1"
-        return $false
-    }
-    if (-not (Get-Command winget -EA 0)) {
-        $userPath = [Environment]::GetEnvironmentVariable('Path','User')
-        if (-not $userPath) { $userPath = "" }
-        $winApps = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
-        if (-not ($userPath -split ';' | Where-Object { $_ -eq $winApps })) {
-            [Environment]::SetEnvironmentVariable('Path', ($userPath + ';' + $winApps).Trim(';'), 'User')
-        }
-        $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
-    }
-    return [bool](Get-Command winget -EA 0)
-}
+if (-not $selective -or $WingetUpdate) {
 
-if (Ensure-Winget) {
-    winget pin add --id Microsoft.AppInstaller --blocking *>$null 2>&1
-    winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
-    winget pin remove --id Microsoft.AppInstaller *>$null 2>&1
-} else {
-    Show-Error "winget unavailable. Skipping upgrades."
-}
+Show-Header "System Update..."
+winget pin add --id Microsoft.AppInstaller --blocking *>$null 2>&1
+winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
+winget pin remove --id Microsoft.AppInstaller *>$null 2>&1
 Show-OK "Software updated."
+
+} # end WingetUpdate
 
 # ============================
 # Privacy & UI Registry Tweaks
 # ============================
+if (-not $selective -or $Privacy) {
+
 Show-Header "Privacy & UI Tweaks"
 $tw = @(
     @{P="HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"; N="SubscribedContent-338388Enabled"; V=0},
@@ -311,9 +336,13 @@ $tw = @(
 foreach ($t in $tw) { if (-not (Test-Path $t.P)) { New-Item $t.P -Force | Out-Null }; Set-ItemProperty $t.P $t.N $t.V -Force }
 Show-OK "Privacy tweaks applied."
 
-# ======================
+} # end Privacy
+
+# ===========================
 # Download & Install Meslo Font
-# ======================
+# ===========================
+if (-not $selective -or $Fonts) {
+
 $fontsInstalled = $false
 
 # Strategy 1: Registry Check (Fastest)
@@ -348,23 +377,27 @@ if ($fontsInstalled) {
     Show-OK "Fonts installed."
 }
 
+} # end Fonts
+
 # ============================
 # Install RSAT Tools (Separate Window)
 # ============================
+if (-not $selective -or $RSAT) {
+
 Show-Header "Launching RSAT Tools Installation in New Window..."
 
 $rsatWorker = "$env:TEMP\Install-RSAT-Worker.ps1"
 $rsatContent = @'
     $ErrorActionPreference = "Stop"
-    
+
     # --- Embedded Helpers ---
     function Show-Header ([string]$t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
     function Show-OK ([string]$t) { Write-Host " [OK] $t" -ForegroundColor Green }
     function Show-Error ([string]$t) { Write-Host " [ERROR] $t" -ForegroundColor Red }
-    
+
     function Reset-WindowsUpdate {
         Write-Host " [FIX] Resetting Windows Update & Killing Stuck Processes..." -ForegroundColor Yellow
-        
+
         "TiWorker","wusa","dism","trustedinstaller" | ForEach-Object {
             Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         }
@@ -377,7 +410,7 @@ $rsatContent = @'
              # Rename with timestamp to avoid collision
             Rename-Item -Path $sd -NewName "SoftwareDistribution.old.$(Get-Date -Format 'HHmmss')" -Force -ErrorAction SilentlyContinue
         }
-        
+
         "wuauserv","bits","cryptsvc","msiserver" | ForEach-Object {
             Start-Service -Name $_ -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 2
@@ -387,17 +420,17 @@ $rsatContent = @'
 
     Show-Header "RSAT Tools Installation"
     Write-Host "This window will stay open so you can review the results." -ForegroundColor Gray
-    
+
     $rsatFeatures = @(
         "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0",
         "Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0",
         "Rsat.Dns.Tools~~~~0.0.1.0",
         "Rsat.ServerManager.Tools~~~~0.0.1.0"
     )
-    
+
     # Preemptive cleanup if any are missing
-    $missingRsat = $rsatFeatures | Where-Object { 
-        (Get-WindowsCapability -Online -Name $_ -ErrorAction SilentlyContinue).State -ne 'Installed' 
+    $missingRsat = $rsatFeatures | Where-Object {
+        (Get-WindowsCapability -Online -Name $_ -ErrorAction SilentlyContinue).State -ne 'Installed'
     }
     if ($missingRsat) {
         Write-Host " [PRE-FIX] Detected missing RSAT tools. Running preemptive cleanup..." -ForegroundColor Yellow
@@ -413,7 +446,7 @@ $rsatContent = @'
                 Write-Host " [SKIP] $shortName" -ForegroundColor DarkGray
             } else {
                 Write-Host " [INSTALL] $shortName..."
-                
+
                 try {
                     Add-WindowsCapability -Online -Name $feature -ErrorAction Stop
                     Show-OK "$shortName installed."
@@ -444,70 +477,82 @@ try {
     Show-Error "Failed to spawn RSAT window: $_"
 }
 
+} # end RSAT
 
 # ============================
 # SSH Agent & Git Config
 # ============================
+if (-not $selective -or $GitConfig) {
+
 if (Get-Service ssh-agent -EA 0) { Set-Service ssh-agent -StartupType Automatic; Start-Service ssh-agent }
 if (-not (git config --global user.name)) { git config --global user.name (Read-Host "Git Name"); git config --global user.email (Read-Host "Git Email") }
 git config --global core.pager "delta"; git config --global delta.navigate true; Show-OK "SSH & Git configured."
 
+} # end GitConfig
+
 # ======================
 # Install MailStore Home
 # ======================
+if (-not $selective -or $MailStore) {
+
 if (-not (Test-Path "${env:ProgramFiles(x86)}\MailStore\MailStore Home\MailStoreHome.exe")) {
     $ms = "$env:USERPROFILE\Downloads\MailStoreHomeSetup.exe"
     Start-Process aria2c "-x 16 -s 16 -d `"$env:USERPROFILE\Downloads`" -o MailStoreHomeSetup.exe https://my.mailstore.com/Downloads/Home" -Wait
     if (Test-Path $ms) { Start-Process $ms -Wait }
 }
 
+} # end MailStore
+
 # ============================
-# RDP Auto-Suspend (Optional)
+# RDP Auto-Suspend
 # ============================
-# Suspends VM on Linux host when RDP disconnects
+if (-not $selective -or $RdpSuspend) {
+
 $autoSuspendTask = "AutoSuspend-RDP"
 $existingTask = schtasks /query /tn $autoSuspendTask 2>&1
 if ($existingTask -match "ERROR|does not exist") {
     $LinuxHost = "192.168.1.5"
     $LinuxUser = "nasadmin"
     $VMName = "Win11"
-    
-    # Create suspend script
+
     $SuspendScript = "$env:ProgramData\rdp-suspend.ps1"
     "ssh ${LinuxUser}@${LinuxHost} `"virsh -c qemu:///system suspend ${VMName}`"" | Set-Content $SuspendScript
-    
-    # Create scheduled task
+
     schtasks /create /tn $autoSuspendTask `
         /tr "pwsh.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$SuspendScript`"" `
         /sc ONEVENT /ec "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" `
         /mo "*[System[Provider[@Name='Microsoft-Windows-TerminalServices-LocalSessionManager'] and (EventID=24)]]" `
         /ru "$env:USERDOMAIN\$env:USERNAME" /it /f | Out-Null
-    
+
     if ($LASTEXITCODE -eq 0) { Show-OK "Auto-Suspend task created." }
     else { Show-Error "Auto-Suspend task failed." }
 } else {
     Write-Host " [SKIP] Auto-Suspend task exists" -ForegroundColor DarkGray
 }
 
-# ============================
-# Network & Domain Configuration
-# ============================
+} # end RdpSuspend
+
 # ======================
-# Start Debloater script
+# Debloater
 # ======================
+if (-not $selective -or $Debloat) {
+
 $debloatMarker = "$env:USERPROFILE\.debloat-done"
 if (-not (Test-Path $debloatMarker)) {
     Show-Header "Launching Debloater"
-    # Added -NoExit so user can see output/errors
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "irm https://win11debloat.raphi.re/ | iex" 
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "irm https://win11debloat.raphi.re/ | iex"
     $null = New-Item $debloatMarker -ItemType File -Force
 } else {
     Write-Host " [SKIP] Debloater already run" -ForegroundColor DarkGray
 }
 
+} # end Debloat
+
 # ============================
 # Network & Domain Configuration
 # ============================
+if (-not $selective -or $Network) {
+
 Show-Header "Network & Domain Config"
 
 # 1. IPv6 Nuclear Option
@@ -525,13 +570,6 @@ if ($regVal -ne $ipv6Data) {
     Write-Host " [OK] IPv6 Registry is correctly set to 0xFF." -ForegroundColor Green
 }
 
-# Check if IPv6 is actually active (requires reboot to apply Reg)
-# User feedback: The binding check can be misleading if registry is set but adapter shows enabled.
-# We are trusting the Registry Key 0xFF as the source of truth for "Disabled".
-if ($regVal -eq $ipv6Data) {
-    Write-Host " [OK] IPv6 Registry logic satisfied." -ForegroundColor Green
-}
-
 # 2. Join Domain
 $domain = "h-lab.org"
 $compSys = Get-CimInstance Win32_ComputerSystem
@@ -540,7 +578,6 @@ if ($compSys.PartOfDomain -and ($compSys.Domain -eq $domain)) {
 } else {
     Write-Host " [DOMAIN] Joining $domain..."
     try {
-        # Try joining. If it fails due to IPv6 context, it will catch.
         Add-Computer -DomainName $domain -ErrorAction Stop
         Show-OK "Joined $domain. One final reboot required."
         $restartRequired = $true
@@ -550,18 +587,20 @@ if ($compSys.PartOfDomain -and ($compSys.Domain -eq $domain)) {
     }
 }
 
-
+} # end Network
 
 Show-Header "Setup Complete!"
 
-if ($restartRequired) {
-    Write-Host "RESTART REQUIRED: IPv6 disabled or Domain Join performed." -ForegroundColor Red
-    $response = Read-Host "Restart now? (y/n)"
-    if ($response -match "^y") { Restart-Computer -Force }
-} else {
-    Write-Host "No critical system changes requiring restart were applied." -ForegroundColor Green
+if (-not $selective -or $Network) {
+    if ($restartRequired) {
+        Write-Host "RESTART REQUIRED: IPv6 disabled or Domain Join performed." -ForegroundColor Red
+        $response = Read-Host "Restart now? (y/n)"
+        if ($response -match "^y") { Restart-Computer -Force }
+    } else {
+        Write-Host "No critical system changes requiring restart were applied." -ForegroundColor Green
+    }
 }
-Write-Host "Make sure to check the RSAT window for completion!" -ForegroundColor Cyan
+if (-not $selective -or $RSAT) {
+    Write-Host "Make sure to check the RSAT window for completion!" -ForegroundColor Cyan
+}
 Read-Host "Press Enter to exit"
-
-} # end non-selective (main)
