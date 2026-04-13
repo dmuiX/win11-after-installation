@@ -1,7 +1,20 @@
 # Requires -Version 7.0
+param(
+    [switch]$FixPath,        # fix git, vim, starship path
+    [switch]$StarshipConfig, # starship config
+    [switch]$Aliases,        # setup aliases
+    [switch]$Vimrc,          # add .vimrc
+    [switch]$MacosHotkeys,   # add macos-hotkeys.ahk
+    [switch]$OnlyAllSwitches # run all 5 sections above, skip the rest
+)
+if ($OnlyAllSwitches) { $FixPath = $StarshipConfig = $Aliases = $Vimrc = $MacosHotkeys = $true }
+# If any switch is passed, only run the flagged sections; otherwise run everything.
+$selective = $FixPath -or $StarshipConfig -or $Aliases -or $Vimrc -or $MacosHotkeys
+
 $ErrorActionPreference = "Stop"
 $ScriptRoot ??= $PSScriptRoot
 $restartRequired = $false
+$clinkDir = "$env:LOCALAPPDATA\clink"
 
 # --- Helpers ---
 function Show-Header ([string]$t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
@@ -39,12 +52,21 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Show-Error "Administrative privileges required."; exit 1
 }
 
+if (-not $selective) {
+
 # Enable winget for PowerShell 7
-$wingetPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
+# When elevated on AD, $env:LOCALAPPDATA may resolve to the wrong profile.
+# Use the logged-on user's profile explicitly via the registry.
+$loggedOnUser = (Get-CimInstance Win32_ComputerSystem).UserName  # DOMAIN\username
+$loggedOnSID  = (New-Object System.Security.Principal.NTAccount($loggedOnUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+$loggedOnLocalAppData = (Get-ItemProperty "Registry::HKEY_USERS\$loggedOnSID\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name "Local AppData" -EA 0)."Local AppData"
+if (-not $loggedOnLocalAppData) { $loggedOnLocalAppData = $env:LOCALAPPDATA }  # fallback
+
+$wingetPath = "$loggedOnLocalAppData\Microsoft\WindowsApps\winget.exe"
 if (Test-Path $wingetPath) {
     Set-Alias -Name winget -Value $wingetPath -Force
 } else {
-    Write-Error "winget.exe not found at $wingetPath"
+    Write-Error "winget.exe not found at $wingetPath — open ms-windows-store://pdp/?productid=9NBLGGH4NNS1"
     exit 1
 }
 
@@ -54,7 +76,15 @@ Show-Header "Win 11 Setup (PS7 Refined)"
 # update winget sources
 # =========================
 Show-Header "Configuring winget..."
-try { winget source update 2>$null } catch {}
+# Source update must run as the actual user, not the elevated token.
+# We use RunAs /trustlevel to drop elevation for this call only.
+try {
+    # Reset sources if they're broken (common on first AD login)
+    winget source reset --force *>$null
+    winget source add --name winget https://winget.azureedge.net/cache *>$null
+    winget source update 2>$null
+} catch {}
+Show-OK "winget sources refreshed."
 
 # =====================
 # winget installations
@@ -80,9 +110,12 @@ foreach ($id in $packages) {
     }
 }
 
+} # end non-selective (winget)
+
 # ===========================
 # fix git, vim, starship path
 # ===========================
+if (-not $selective -or $FixPath) {
 Show-Header "Fixing PATH Environment Variable"
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (-not $path) { $path = "" }
@@ -111,12 +144,14 @@ if ($path -ne $newPath) {
 } else {
     Write-Host " [SKIP] PATH already correct." -ForegroundColor DarkGray
 }
+} # end FixPath
 
 # ===============
 # starship config
 # ===============
+if (-not $selective -or $StarshipConfig) {
 Show-Header "Configuring Starship..."
-$clinkDir = "$env:LOCALAPPDATA\clink"; $configDir = "$env:USERPROFILE\.config"
+$configDir = "$env:USERPROFILE\.config"
 $null = New-Item -Path $clinkDir, $configDir -ItemType Directory -Force
 
 "load(io.popen('starship init cmd'):read(`"*a`"))()" | Set-Content "$clinkDir\starship.lua" -Force
@@ -135,10 +170,12 @@ if (Test-Path $starshipSrc) {
         Show-OK "Starship preset downloaded."
     } catch { Write-Host " [WARN] Starship preset failed." -ForegroundColor Yellow }
 }
+} # end StarshipConfig
 
 # =============
 # setup aliases
 # =============
+if (-not $selective -or $Aliases) {
 $aliasesSrc = "$ScriptRoot\configs\aliases"
 $aliasesDst = "$clinkDir\aliases"
 if (Test-Path $aliasesSrc) {
@@ -156,10 +193,12 @@ if ($clinkBat) {
     reg add "HKCU\Software\Microsoft\Command Processor" /v Autorun /t REG_SZ /d $cmd /f | Out-Null
     Show-OK "Clink Autorun configured."
 }
+} # end Aliases
 
 # ==========
 # add .vimrc
 # ==========
+if (-not $selective -or $Vimrc) {
 Show-Header "Setting up .vimrc"
 $vimrcSrc = "$ScriptRoot\configs\.vimrc"
 if (Test-Path $vimrcSrc) {
@@ -167,12 +206,17 @@ if (Test-Path $vimrcSrc) {
 } else {
     Show-Error ".vimrc source not found."
 }
+} # end Vimrc
 
 # =====================
 # add macos-hotkeys.ahk
 # =====================
+if (-not $selective -or $MacosHotkeys) {
 $ahkSrc = "$ScriptRoot\configs\macos-hotkeys.ahk"
 if (Test-Path $ahkSrc) { Copy-Item $ahkSrc "$env:USERPROFILE\Desktop\macos-hotkeys.ahk" -Force; Show-OK "Hotkey script copied." }
+} # end MacosHotkeys
+
+if (-not $selective) {
 
 # ============================
 # Configure Disk Cleanup
@@ -519,3 +563,5 @@ if ($restartRequired) {
 }
 Write-Host "Make sure to check the RSAT window for completion!" -ForegroundColor Cyan
 Read-Host "Press Enter to exit"
+
+} # end non-selective (main)

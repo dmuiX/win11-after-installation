@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 
 :: Self-elevate if not admin
-net session >nul 2>&1 || (powershell -Command "Start-Process cmd '/c \"%~f0\"' -Verb RunAs" & exit /b)
+net session >nul 2>&1 || (powershell -Command "Start-Process cmd '/c \"%~f0\" %*' -Verb RunAs" & exit /b)
 
 :: Find or install PowerShell 7
 where pwsh >nul 2>&1 || if exist "%ProgramFiles%\PowerShell\7\pwsh.exe" (set "PWSH=%ProgramFiles%\PowerShell\7\pwsh.exe") else (
@@ -13,7 +13,7 @@ where pwsh >nul 2>&1 || if exist "%ProgramFiles%\PowerShell\7\pwsh.exe" (set "PW
 )
 
 :: Run script
-if defined PWSH ("%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "win11-post-setup.ps1") else (pwsh -NoProfile -ExecutionPolicy Bypass -File "win11-post-setup.ps1")
+if defined PWSH ("%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "win11-post-setup.ps1" %*) else (pwsh -NoProfile -ExecutionPolicy Bypass -File "win11-post-setup.ps1" %*)
 
 :: Refresh PATH and exit
 for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "PATH=%%b;%PATH%"
