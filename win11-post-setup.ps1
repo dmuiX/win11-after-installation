@@ -112,7 +112,7 @@ if (-not $selective -or $InstallPackages) {
 
 Show-Header "Installing programs..."
 $packages = @(
-    "Microsoft.WindowsTerminal", "Mozilla.Firefox", "namazso.OpenHashTab", "Microsoft.VisualStudioCode.Insiders",
+    "Mozilla.Firefox", "namazso.OpenHashTab", "Microsoft.VisualStudioCode.Insiders",
     "gerardog.gsudo", "Starship.Starship", "chrisant996.Clink", "DEVCOM.JetBrainsMonoNerdFont",
     "CodeSector.TeraCopy", "Valve.Steam", "7zip.7zip", "JAMSoftware.TreeSize.Free",
     "veeam.veeamagent", "vim.vim", "Git.Git", "sharkdp.bat", "lsd-rs.lsd", "AutoHotkey.AutoHotkey",
@@ -295,7 +295,8 @@ if (-not $selective -or $WingetUpdate) {
 
 Show-Header "System Update..."
 winget pin add --id Microsoft.AppInstaller --blocking *>$null 2>&1
-winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
+# --scope machine skips MSIX/Store packages (they fail with 0x80070005 when elevated on AD)
+winget upgrade --all --silent --scope machine --accept-package-agreements --accept-source-agreements
 winget pin remove --id Microsoft.AppInstaller *>$null 2>&1
 Show-OK "Software updated."
 

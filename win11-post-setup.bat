@@ -6,8 +6,9 @@ net session >nul 2>&1 || (powershell -Command "Start-Process cmd '/c \"%~f0\" %*
 
 :: Find or install PowerShell 7
 where pwsh >nul 2>&1 || if exist "%ProgramFiles%\PowerShell\7\pwsh.exe" (set "PWSH=%ProgramFiles%\PowerShell\7\pwsh.exe") else (
-    echo [INFO] Downloading PowerShell 7...
-    curl -L -o "%TEMP%\pwsh.msi" "https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/PowerShell-7.5.4-win-x64.msi"
+    echo [INFO] Downloading PowerShell 7 (latest)...
+    for /f "tokens=*" %%i in ('powershell -Command "(Invoke-RestMethod https://api.github.com/repos/PowerShell/PowerShell/releases/latest).assets | Where-Object { $_.name -like '*win-x64.msi' } | Select-Object -ExpandProperty browser_download_url"') do set "PWSH_URL=%%i"
+    curl -L -o "%TEMP%\pwsh.msi" "%PWSH_URL%"
     msiexec /i "%TEMP%\pwsh.msi" /qn /norestart
     timeout /t 3 >nul
 )
