@@ -85,6 +85,7 @@ foreach ($id in $packages) {
 # ===========================
 Show-Header "Fixing PATH Environment Variable"
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
+if (-not $path) { $path = "" }
 $vimSearch = Get-ChildItem 'C:\Program Files\Vim' -Filter vim.exe -Recurse -EA 0 | Select-Object -First 1
 $v = $vimSearch ? $vimSearch.DirectoryName : $null
 
@@ -93,8 +94,14 @@ else { Write-Host " [WARN] Vim not found in C:\Program Files\Vim" -ForegroundCol
 
 $targets = @($v, 'C:\Program Files\Git\cmd', 'C:\Program Files\starship\bin') | Where-Object { $_ -and (Test-Path $_) }
 
-$clean = $path -split ';' | Where-Object { $_ -and ($_ -notmatch 'Git\\usr\\bin') -and ($targets -notcontains $_) }
-$newPath = ($clean + $targets) -join ';'
+$mustKeep = @("$env:LOCALAPPDATA\Microsoft\WindowsApps")
+$pathParts = $path -split ';' | Where-Object { $_ }
+$clean = $pathParts | Where-Object { ($_ -notmatch 'Git\\usr\\bin') -and ($targets -notcontains $_) }
+foreach ($p in $mustKeep) { if ($p -and ($clean -notcontains $p)) { $clean += $p } }
+
+$combined = @()
+foreach ($p in ($clean + $targets)) { if ($p -and ($combined -notcontains $p)) { $combined += $p } }
+$newPath = $combined -join ';'
 
 if ($path -ne $newPath) {
     [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
@@ -200,9 +207,31 @@ if (Test-Path $restore) { & $restore; Show-OK "VS Code restored." }
 # winget Update
 # ==============
 Show-Header "System Update..."
-winget pin add --id Microsoft.AppInstaller --blocking *>$null 2>&1
-winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
-winget pin remove --id Microsoft.AppInstaller *>$null 2>&1
+function Ensure-Winget {
+    $winget = "$env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe"
+    if (-not (Test-Path $winget)) {
+        Show-Error "winget.exe not found in WindowsApps. Open: ms-windows-store://pdp/?productid=9NBLGGH4NNS1"
+        return $false
+    }
+    if (-not (Get-Command winget -EA 0)) {
+        $userPath = [Environment]::GetEnvironmentVariable('Path','User')
+        if (-not $userPath) { $userPath = "" }
+        $winApps = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
+        if (-not ($userPath -split ';' | Where-Object { $_ -eq $winApps })) {
+            [Environment]::SetEnvironmentVariable('Path', ($userPath + ';' + $winApps).Trim(';'), 'User')
+        }
+        $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+    }
+    return [bool](Get-Command winget -EA 0)
+}
+
+if (Ensure-Winget) {
+    winget pin add --id Microsoft.AppInstaller --blocking *>$null 2>&1
+    winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
+    winget pin remove --id Microsoft.AppInstaller *>$null 2>&1
+} else {
+    Show-Error "winget unavailable. Skipping upgrades."
+}
 Show-OK "Software updated."
 
 # ============================
