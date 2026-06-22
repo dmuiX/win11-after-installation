@@ -244,6 +244,14 @@ if (-not $selective -or $Vimrc) {
         Show-Error ".vimrc source not found."
     }
 
+    # Install vim-plug for Git's MSYS2 vim
+    $plugPath = "$env:USERPROFILE\.vim\autoload\plug.vim"
+    if (-not (Test-Path $plugPath)) {
+        $null = New-Item (Split-Path $plugPath) -ItemType Directory -Force
+        Invoke-WebRequest "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim" -OutFile $plugPath -UseBasicParsing
+        Show-OK "vim-plug installed."
+    }
+
 } # end Vimrc
 
 # =====================
