@@ -121,7 +121,8 @@ if (-not $selective -or $InstallPackages) {
         "AutoHotkey.AutoHotkey",
         "Google.GoogleDrive", 
         "dandavison.delta", 
-        "aria2.aria2", 
+        "aria2.aria2",
+        "junegunn.fzf",
         "marha.VcXsrv",
         "XP8JNQFBQH6PVF", # Perplexity (MS Store)
         "9PKTQ5699M62"    # Apple iCloud (MS Store)
@@ -143,7 +144,7 @@ if (-not $selective -or $InstallPackages) {
 } # end InstallPackages
 
 # ===========================
-# fix git, vim, starship path
+# fix git, starship, winget path
 # ===========================
 if (-not $selective -or $FixPath) {
 
@@ -155,7 +156,7 @@ if (-not $selective -or $FixPath) {
 
     $targets = @('C:\Program Files\Git\cmd', 'C:\Program Files\starship\bin') | Where-Object { Test-Path $_ }
 
-    $mustKeep = @("$env:LOCALAPPDATA\Microsoft\WindowsApps")
+    $mustKeep = @("$env:LOCALAPPDATA\Microsoft\WindowsApps", "$env:LOCALAPPDATA\Microsoft\WinGet\Links")
     $pathParts = $path -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
     $clean = $pathParts | Where-Object { ($_ -notmatch 'Git\\usr\\bin') -and ($targets -notcontains $_) }
     foreach ($p in $mustKeep) { if ($p -and ($clean -notcontains $p)) { $clean += $p } }
@@ -226,6 +227,19 @@ if (-not $selective -or $Aliases) {
         $cmd = "`"$clinkBat`" inject --profile `"$clinkDir`" && doskey /macrofile=`"$aliasesDst`""
         reg add "HKCU\Software\Microsoft\Command Processor" /v Autorun /t REG_SZ /d $cmd /f | Out-Null
         Show-OK "Clink Autorun configured."
+    }
+
+    # clink-fzf plugin (fuzzy history search)
+    $fzfPlugin = "$clinkDir\clink-fzf"
+    if (Get-Command git -EA 0) {
+        if (Test-Path $fzfPlugin) {
+            git -C $fzfPlugin pull -q 2>$null
+        } else {
+            git clone -q https://github.com/chrisant996/clink-fzf $fzfPlugin
+        }
+        Copy-Item "$fzfPlugin\fzf.lua" "$clinkDir\fzf.lua" -Force
+        'rl.setbinding("\e[A", "luafunc:fzf_history")' | Set-Content "$clinkDir\fzf-bindings.lua" -Force
+        Show-OK "clink-fzf installed (Up arrow = history search)."
     }
 
 } # end Aliases
