@@ -4,9 +4,11 @@ param(
 )
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "This script must be run as Administrator." -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
+    $shell = if (Get-Command pwsh -EA 0) { 'pwsh' } else { 'powershell' }
+    $args = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    if ($Ask) { $args += " -Ask" }
+    Start-Process $shell -ArgumentList $args -Verb RunAs
+    exit
 }
 
 $Host.UI.RawUI.WindowTitle = "Windows Maintenance"
