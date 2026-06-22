@@ -1,5 +1,0 @@
-alphabotsec.vscode-eclipse-keybindings
-kylinideteam.gitlens
-pkief.material-icon-theme
-pkief.material-product-icons
-t3m1n4l.amoled-github

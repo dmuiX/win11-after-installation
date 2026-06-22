@@ -1,4 +1,4 @@
-# restore-settings.ps1 - Fast VS Code & Antigravity settings restore
+# restore-settings.ps1 - VS Code settings restore
 $ConfigDir = "$PSScriptRoot\..\vscode-config"
 
 if (-not (Test-Path $ConfigDir)) {
@@ -38,32 +38,6 @@ if ((Test-Path "$ConfigDir\vscode-insiders-keybindings.json") -and (-not (Test-P
     Write-Host " [OK] Keybindings restored" -ForegroundColor Green
 } elseif (Test-Path "$insidersUser\keybindings.json") {
     Write-Host " [SKIP] Keybindings already exist" -ForegroundColor DarkGray
-}
-
-# Antigravity Extensions (parallel install)
-$agExtFile = "$ConfigDir\antigravity-extensions.txt"
-if ((Test-Path $agExtFile) -and (Get-Command antigravity -EA 0)) {
-    Write-Host "`n--- Antigravity Extensions ---"
-    $installed = (antigravity --list-extensions) -join "`n"
-    $extensions = Get-Content $agExtFile | Where-Object { $_ -and ($installed -notmatch "^$([regex]::Escape($_))$") }
-    
-    if ($extensions.Count -gt 0) {
-        $extensions | ForEach-Object -Parallel {
-            Write-Host " [INSTALL] $_"
-            antigravity --install-extension $_ --force 2>$null | Out-Null
-        } -ThrottleLimit 4
-    }
-    Write-Host " [OK] Antigravity extensions done" -ForegroundColor Green
-}
-
-# Antigravity Settings
-$agBackup = "$ConfigDir\antigravity"
-$agUser = "$env:APPDATA\Antigravity\User"
-if ((Test-Path $agBackup) -and (-not (Test-Path "$agUser\settings.json"))) {
-    $null = New-Item "$agUser\globalStorage" -ItemType Directory -Force -EA 0
-    if (Test-Path "$agBackup\settings.json") { Copy-Item "$agBackup\settings.json" "$agUser\settings.json" -Force }
-    if (Test-Path "$agBackup\globalStorage\storage.json") { Copy-Item "$agBackup\globalStorage\storage.json" "$agUser\globalStorage\storage.json" -Force }
-    Write-Host " [OK] Antigravity settings restored" -ForegroundColor Green
 }
 
 Write-Host "`nRestore complete!" -ForegroundColor Green
