@@ -24,8 +24,12 @@
     "terminal.integrated.defaultProfile.windows": "Command Prompt",
     "editor.tabSize": 2,
     "bashBeautify.tabSize": 2,
-    "extensions.autoUpdate": false,
+    "extensions.autoUpdate": "off",
     "scm.repositories.selectionMode": "multiple",
     "diffEditor.ignoreTrimWhitespace": false,
     "explorer.confirmDragAndDrop": false,
+    "editor.tabCompletion": "on",
+    "github.copilot.completions.chat.enabled": true,
+    "github.copilot.chat.completionsFetcher": "electron-fetch",
+    "markdown.extension.completion.enabled": true,
 }
