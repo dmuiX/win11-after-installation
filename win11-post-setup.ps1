@@ -240,7 +240,11 @@ if (-not $selective -or $Aliases) {
         Copy-Item "$fzfPlugin\fzf.lua" "$clinkDir\fzf.lua" -Force
         $clinkExe = (Get-Command clink_x64 -EA 0) ?? (Get-Command clink -EA 0)
         if ($clinkExe) { & $clinkExe.Source set fzf.default_bindings true *>$null }
-        'rl.setbinding("\e[A", "luafunc:fzf_history")' | Set-Content "$clinkDir\fzf-bindings.lua" -Force
+        @'
+if rl.setbinding then
+    rl.setbinding([["\e[A"]], [["luafunc:fzf_history"]])
+end
+'@ | Set-Content "$clinkDir\fzf-bindings.lua" -Force
         Show-OK "clink-fzf installed (Up arrow = history search)."
     }
 
