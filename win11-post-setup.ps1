@@ -238,8 +238,12 @@ if (-not $selective -or $Aliases) {
             git clone -q https://github.com/chrisant996/clink-fzf $fzfPlugin
         }
         Copy-Item "$fzfPlugin\fzf.lua" "$clinkDir\fzf.lua" -Force
-        $clinkExe = (Get-Command clink_x64 -EA 0) ?? (Get-Command clink -EA 0)
-        if ($clinkExe) { & $clinkExe.Source set fzf.default_bindings true *>$null }
+        $clinkExe = "${env:ProgramFiles(x86)}\clink\clink_x64.exe"
+        if (-not (Test-Path $clinkExe)) { $clinkExe = "$env:ProgramW6432\clink\clink_x64.exe" }
+        if (Test-Path $clinkExe) {
+            & $clinkExe set fzf.default_bindings true *>$null
+            & $clinkExe set history.max_lines 10000 *>$null
+        }
         @'
 if rl.setbinding then
     rl.setbinding([["\e[A"]], [["luafunc:fzf_history"]])
