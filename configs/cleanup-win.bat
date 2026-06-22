@@ -42,17 +42,17 @@ REM  Part 1: Repairing the Windows Image
 REM ====================================================================
 
 call :confirm "DISM CheckHealth" && (
-    echo [1/8] Checking for component store corruption...
+    echo [1/7] Checking for component store corruption...
     DISM /Online /Cleanup-Image /CheckHealth
 )
 echo.
 call :confirm "DISM ScanHealth" && (
-    echo [2/8] Scanning for component store corruption...
+    echo [2/7] Scanning for component store corruption...
     DISM /Online /Cleanup-Image /ScanHealth
 )
 echo.
 call :confirm "DISM RestoreHealth" && (
-    echo [3/8] Repairing the Windows image...
+    echo [3/7] Repairing the Windows image...
     DISM /Online /Cleanup-Image /RestoreHealth
 )
 echo.
@@ -61,23 +61,18 @@ REM  Part 2: Comprehensive Component Store Cleanup
 REM ====================================================================
 
 call :confirm "DISM AnalyzeComponentStore" && (
-    echo [4/8] Analyzing the component store...
+    echo [4/7] Analyzing the component store...
     DISM /Online /Cleanup-Image /AnalyzeComponentStore
 )
 echo.
 call :confirm "DISM StartComponentCleanup" && (
-    echo [5/8] Performing standard component cleanup...
+    echo [5/7] Performing standard component cleanup...
     DISM /Online /Cleanup-Image /StartComponentCleanup
 )
 echo.
 call :confirm "DISM StartComponentCleanup /ResetBase" && (
-    echo [6/8] Performing aggressive component cleanup...
+    echo [6/7] Performing aggressive component cleanup...
     DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase
-)
-echo.
-call :confirm "DISM SPSuperseded" && (
-    echo [7/8] Removing superseded service pack components...
-    DISM /Online /Cleanup-Image /SPSuperseded
 )
 echo.
 REM ====================================================================
@@ -85,7 +80,7 @@ REM  Part 3: System File Checker
 REM ====================================================================
 
 call :confirm "SFC /scannow" && (
-    echo [8/8] Running System File Checker...
+    echo [7/7] Running System File Checker...
     sfc /scannow
 )
 echo.
@@ -105,12 +100,10 @@ echo.
 call :confirm "Clear temporary files" && (
     echo [1/3] Clearing Temporary Files...
     del /q /f /s "%TEMP%\*" >nul 2>&1
-    rd /s /q "%TEMP%" >nul 2>&1
-    if not exist "%TEMP%" mkdir "%TEMP%" >nul 2>&1
+    for /d %%D in ("%TEMP%\*") do rd /s /q "%%D" >nul 2>&1
 
     del /q /f /s "%WINDIR%\Temp\*" >nul 2>&1
-    rd /s /q "%WINDIR%\Temp" >nul 2>&1
-    if not exist "%WINDIR%\Temp" mkdir "%WINDIR%\Temp" >nul 2>&1
+    for /d %%D in ("%WINDIR%\Temp\*") do rd /s /q "%%D" >nul 2>&1
 )
 
 call :confirm "Clear Windows Update cache" && (
