@@ -38,7 +38,7 @@ Installs 20+ packages via `winget` in a single pass:
 ### 🎨 Customization
 - 🌈 **Starship prompt** with Gruvbox Rainbow preset
 - ⌨️ **Clink** integration with custom aliases (`ls`, `ll`, `vi`, `cat`)
-- 🌙 **Dark Theme** with left-aligned Taskbar
+- 🌙 **Dark Theme**
 - 🍎 **macOS-like** keyboard shortcuts via AutoHotkey
 - 📝 **.vimrc** configuration included
 - 🖼️ **X11 Forwarding** via VcXsrv with auto-configured DISPLAY variable

@@ -346,7 +346,6 @@ if (-not $selective -or $Privacy) {
         @{P = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"; N = "CortanaConsent"; V = 0 },
         @{P = "HKCU:\Software\Microsoft\Speech_OneCore\Preferences"; N = "HasAccepted"; V = 0 },
         @{P = "HKCU:\Software\Microsoft\InputPersonalization"; N = "RestrictImplicitTextCollection"; V = 1 },
-        @{P = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; N = "TaskbarAl"; V = 0 },
         @{P = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"; N = "AppsUseLightTheme"; V = 0 },
         @{P = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; N = "HideFileExt"; V = 0 },
         @{P = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; N = "Hidden"; V = 1 },
