@@ -16,9 +16,9 @@ highlight Normal ctermbg=None
 highlight LineNr ctermfg=DarkGrey
 
 " vim-plug Setup
-if has('win32') && empty(glob('~/vimfiles/autoload/plug.vim'))
-  let s:command = 'powershell -Command "iwr -useb https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim | ni $HOME/vimfiles/autoload/plug.vim -Force"'
-  call system(s:command)
+let s:plug_path = has('win32') ? '~/vimfiles/autoload/plug.vim' : '~/.vim/autoload/plug.vim'
+if empty(glob(s:plug_path))
+  silent execute '!curl -fLo ' . s:plug_path . ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
   autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
 
