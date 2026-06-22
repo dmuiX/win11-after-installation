@@ -17,12 +17,13 @@
 ### 📦 Package Management
 Installs 20+ packages via `winget` in a single pass:
 - 🌐 **Browsers**: Firefox
-- 💻 **Terminals**: Windows Terminal, Clink, Starship prompt
+- 💻 **Terminals**: Clink, Starship prompt
 - 🛠️ **Dev Tools**: VS Code Insiders, Git, Vim, gsudo, Delta (git pager)
 - 🔧 **Utils**: 7-Zip, TeraCopy, TreeSize, OpenHashTab, aria2
 - 🔤 **Fonts**: JetBrains Mono NF, MesloLGS NF (Powerlevel10k)
 - 💾 **Backup**: Veeam Agent, MailStore Home
-- 🎮 **Other**: Steam, Google Drive, VcXsrv (X server), AutoHotkey
+- 🔍 **AI**: Perplexity
+- 🎮 **Other**: Steam, Google Drive, iCloud, VcXsrv (X server), AutoHotkey
 
 ### 🔒 Privacy & Security
 - 🚫 Disables **Telemetry**, **Advertising ID**, and **Location Tracking**
@@ -31,7 +32,7 @@ Installs 20+ packages via `winget` in a single pass:
 
 ### 🧹 System Maintenance
 - 📅 **Daily Updates**: Silent scheduled `winget upgrade` (pins AppInstaller to avoid dependency loops)
-- 🗓️ **Weekly Cleanup**: Deep system cleanup via **PowerShell** script (Disk Cleanup, DISM, SFC)
+- 🗓️ **Weekly Cleanup**: Deep system cleanup (Disk Cleanup, DISM, SFC)
 - ✅ *Safely preserves Downloads folder & Recycle Bin* 📁
 
 ### 🎨 Customization
@@ -45,8 +46,6 @@ Installs 20+ packages via `winget` in a single pass:
 ### 🔧 Developer Tools
 - 🔀 **Git** with Delta pager & auto-configured global settings
 - 🔑 **SSH Agent** enabled and auto-started
-- 🖧 **RSAT Tools**: Active Directory, Group Policy, DNS, Server Manager
-- ⚙️ **Visual C++ Runtimes** (Archive)
 
 ### 🧼 Debloater
 🧹 Automatically launches the popular [Win11Debloat](https://win11debloat.raphi.re/) script for bloatware removal! 💪
@@ -136,7 +135,7 @@ When you run `win11-post-setup.bat` on a fresh machine:
 
 ## 🔁 Idempotent Design
 
-🛡️ This script is **safe to run multiple times**! All expensive operations (package installs, font downloads, RSAT tools) check existing state before executing. 🔍 Config files are intentionally refreshed each run to stay in sync with the repo. ✅
+🛡️ This script is **safe to run multiple times**! All expensive operations (package installs, font downloads) check existing state before executing. 🔍 Config files are intentionally refreshed each run to stay in sync with the repo. ✅
 
 ---
 
