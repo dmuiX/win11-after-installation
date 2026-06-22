@@ -2,7 +2,7 @@ ls=lsd -l
 ll=lsd -la --size=short --date=relative
 llrt=lsd -lart
 llrs=ll -lars
-vi=vim $*
+vi="C:\Program Files\Git\usr\bin\vim.exe" $*
 k=kubectl $*
 mv=move
 rm=del $*

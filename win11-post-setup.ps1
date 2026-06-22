@@ -114,9 +114,8 @@ if (-not $selective -or $InstallPackages) {
         "Valve.Steam",
         "7zip.7zip",
         "JAMSoftware.TreeSize.Free",
-        "veeam.veeamagent", 
-        "vim.vim",
-        "Git.Git", 
+        "veeam.veeamagent",
+        "Git.Git",
         "sharkdp.bat", 
         "lsd-rs.lsd", 
         "AutoHotkey.AutoHotkey",
@@ -153,13 +152,8 @@ if (-not $selective -or $FixPath) {
     if (-not $path) { $path = "" }
     # Sanitize: split entries that got concatenated without semicolons
     $path = [regex]::Replace($path, '(?<=[^;])(?=[A-Z]:\\)', ';')
-    $vimSearch = Get-ChildItem 'C:\Program Files\Vim' -Filter vim.exe -Recurse -EA 0 | Select-Object -First 1
-    $v = $vimSearch ? $vimSearch.DirectoryName : $null
 
-    if ($v) { Write-Host " [DEBUG] Vim found at: $v" -ForegroundColor DarkGray }
-    else { Write-Host " [WARN] Vim not found in C:\Program Files\Vim" -ForegroundColor Yellow }
-
-    $targets = @($v, 'C:\Program Files\Git\cmd', 'C:\Program Files\starship\bin') | Where-Object { $_ -and (Test-Path $_) }
+    $targets = @('C:\Program Files\Git\cmd', 'C:\Program Files\starship\bin') | Where-Object { Test-Path $_ }
 
     $mustKeep = @("$env:LOCALAPPDATA\Microsoft\WindowsApps")
     $pathParts = $path -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
