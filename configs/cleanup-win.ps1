@@ -1,4 +1,4 @@
-# cleanup-win.ps1 - System maintenance and cleanup
+﻿# cleanup-win.ps1 - System maintenance and cleanup
 param(
     [switch]$Ask
 )
