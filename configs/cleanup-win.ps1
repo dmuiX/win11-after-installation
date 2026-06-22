@@ -1,8 +1,13 @@
 # cleanup-win.ps1 - System maintenance and cleanup
-#Requires -RunAsAdministrator
 param(
     [switch]$Ask
 )
+
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "This script must be run as Administrator." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
 
 $Host.UI.RawUI.WindowTitle = "Windows Maintenance"
 Clear-Host
