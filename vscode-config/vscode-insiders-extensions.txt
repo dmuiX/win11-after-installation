@@ -10,10 +10,8 @@ github.copilot-chat
 github.vscode-github-actions
 hashicorp.terraform
 jeff-hykin.better-shellscript-syntax
-maattdd.gitless
 mads-hartmann.bash-ide-vscode
 me-dutour-mathieu.vscode-github-actions
-mhutchie.git-graph
 ms-azuretools.vscode-containers
 ms-kubernetes-tools.vscode-kubernetes-tools
 ms-vscode-remote.remote-ssh
