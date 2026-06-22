@@ -92,14 +92,14 @@ Invoke-IfSelected "Disk Cleanup (cleanmgr /sagerun:1)" {
 # Part 5: Deep Cleaning
 Write-Host "`n━━━ Part 5: Deep System Cleaning ━━━" -ForegroundColor Cyan
 Invoke-IfSelected "Clear temporary files" {
-    Write-Host " [1/3] " -NoNewline -ForegroundColor Yellow; Write-Host "Clearing temporary files..."
+    Write-Host " [1/4] " -NoNewline -ForegroundColor Yellow; Write-Host "Clearing temporary files..."
     Remove-Item "$env:TEMP\*" -Recurse -Force -EA 0
     Remove-Item "$env:WINDIR\Temp\*" -Recurse -Force -EA 0
     Write-Host "       ✓ Temporary files cleared" -ForegroundColor DarkGreen
 }
 
 Invoke-IfSelected "Clear Windows Update cache" {
-    Write-Host " [2/3] " -NoNewline -ForegroundColor Yellow; Write-Host "Clearing Windows Update cache..."
+    Write-Host " [2/4] " -NoNewline -ForegroundColor Yellow; Write-Host "Clearing Windows Update cache..."
     Stop-Service wuauserv, bits -Force -EA 0
     Remove-Item "$env:WINDIR\SoftwareDistribution\Download\*" -Recurse -Force -EA 0
     Start-Service wuauserv, bits -EA 0
@@ -107,9 +107,15 @@ Invoke-IfSelected "Clear Windows Update cache" {
 }
 
 Invoke-IfSelected "Flush DNS cache" {
-    Write-Host " [3/3] " -NoNewline -ForegroundColor Yellow; Write-Host "Flushing DNS cache..."
+    Write-Host " [3/4] " -NoNewline -ForegroundColor Yellow; Write-Host "Flushing DNS..."
     Clear-DnsClientCache
     Write-Host "       ✓ DNS cache flushed" -ForegroundColor DarkGreen
+}
+
+Invoke-IfSelected "TRIM (free unused disk space)" {
+    Write-Host " [4/4] " -NoNewline -ForegroundColor Yellow; Write-Host "Sending TRIM to C:..."
+    Optimize-Volume -DriveLetter C -ReTrim -Verbose
+    Write-Host "       ✓ TRIM complete" -ForegroundColor DarkGreen
 }
 
 Write-Host "`n╔═══════════════════════════════════════════╗" -ForegroundColor Green
