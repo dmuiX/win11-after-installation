@@ -128,6 +128,10 @@ if (-not $selective -or $InstallPackages) {
         "9PKTQ5699M62"    # Apple iCloud (MS Store)
     )
 
+    $customArgs = @{
+        "Microsoft.VisualStudioCode.Insiders" = "--custom `"/mergetasks=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath`""
+    }
+
     # Check per-package with --id rather than bulk-parsing the full list.
     foreach ($id in $packages) {
         $check = winget list --id $id --accept-source-agreements 2>$null | Out-String
@@ -136,7 +140,9 @@ if (-not $selective -or $InstallPackages) {
         }
         else {
             Write-Host " [INSTALL] $id..."
-            winget install --id $id --silent --accept-package-agreements --accept-source-agreements
+            $extra = if ($customArgs.ContainsKey($id)) { $customArgs[$id] } else { "" }
+            $cmd = "winget install --id $id --silent --accept-package-agreements --accept-source-agreements $extra"
+            Invoke-Expression $cmd
             if ($LASTEXITCODE -eq 0) { Show-OK $id } else { Show-Error "$id (exit $LASTEXITCODE)" }
         }
     }
