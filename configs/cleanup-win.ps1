@@ -4,10 +4,10 @@ param(
 )
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $shell = if (Get-Command pwsh -EA 0) { 'pwsh' } else { 'powershell' }
-    $args = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
-    if ($Ask) { $args += " -Ask" }
-    Start-Process $shell -ArgumentList $args -Verb RunAs
+    if (Get-Command pwsh -EA 0) { $shell = 'pwsh' } else { $shell = 'powershell' }
+    $a = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    if ($Ask) { $a += " -Ask" }
+    Start-Process $shell -ArgumentList $a -Verb RunAs
     exit
 }
 
