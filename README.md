@@ -18,7 +18,7 @@
 Installs 20+ packages via `winget` in a single pass:
 - 🌐 **Browsers**: Firefox
 - 💻 **Terminals**: Clink, Starship prompt
-- 🛠️ **Dev Tools**: VS Code Insiders, Git, Vim, gsudo, Delta (git pager)
+- 🛠️ **Dev Tools**: VS Code Insiders, Git (incl. Vim), gsudo, Delta (git pager)
 - 🔧 **Utils**: 7-Zip, TeraCopy, TreeSize, OpenHashTab, aria2
 - 🔤 **Fonts**: JetBrains Mono NF, MesloLGS NF (Powerlevel10k)
 - 💾 **Backup**: Veeam Agent, MailStore Home
@@ -40,7 +40,7 @@ Installs 20+ packages via `winget` in a single pass:
 - ⌨️ **Clink** integration with custom aliases (`ls`, `ll`, `vi`, `cat`)
 - 🌙 **Dark Theme**
 - 🍎 **macOS-like** keyboard shortcuts via AutoHotkey
-- 📝 **.vimrc** configuration included
+- 📝 **.vimrc** with vim-plug and plugins
 - 🖼️ **X11 Forwarding** via VcXsrv with auto-configured DISPLAY variable
 
 ### 🔧 Developer Tools
@@ -78,7 +78,7 @@ When you run `win11-post-setup.bat` on a fresh machine:
 │   ├── 📝 .vimrc               # Vim configuration
 │   ├── 📝 aliases              # Clink shell aliases
 │   ├── 🌐 clink_display.lua    # X11 DISPLAY variable setup
-│   ├── 🧹 cleanup-win.ps1      # Weekly cleanup script
+│   ├── 🧹 cleanup-win.bat      # Weekly cleanup script
 │   ├── 🔄 daily-update.ps1     # Daily winget update script
 │   ├── ⌨️ macos-hotkeys.ahk    # AutoHotkey keybindings
 │   └── 🎮 manage-gpu.bat       # GPU management utility
