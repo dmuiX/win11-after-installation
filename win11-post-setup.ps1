@@ -249,6 +249,7 @@ if (-not $selective -or $Aliases) {
         if (Test-Path $clinkExe) {
             & $clinkExe set fzf.default_bindings true *>$null
             & $clinkExe set history.max_lines 10000 *>$null
+            & $clinkExe set autosuggest.inline true *>$null
         }
         @'
 if rl.setbinding then
