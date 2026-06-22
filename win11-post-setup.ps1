@@ -285,7 +285,7 @@ if (-not $selective -or $Cleanup) {
 if (-not $selective -or $Maintenance) {
 
     $tasks = @(
-        @{Src = "cleanup-win.bat"; TN = "WeeklyCleanup"; Sch = "WEEKLY" },
+        @{Src = "cleanup-win.ps1"; TN = "WeeklyCleanup"; Sch = "WEEKLY" },
         @{Src = "daily-update.ps1"; TN = "DailyWingetUpdate"; Sch = "DAILY" }
     )
     $scheduled = 0

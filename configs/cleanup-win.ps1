@@ -1,19 +1,11 @@
 # cleanup-win.ps1 - System maintenance and cleanup
-# Requires -RunAsAdministrator
-
-# Require admin (run inline; no auto-elevation window)
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "This script must be run as Administrator. Right-click and choose 'Run as administrator'." -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
-}
-
-$Host.UI.RawUI.WindowTitle = "Windows Maintenance"
-Clear-Host
-
+#Requires -RunAsAdministrator
 param(
     [switch]$Ask
 )
+
+$Host.UI.RawUI.WindowTitle = "Windows Maintenance"
+Clear-Host
 
 function Invoke-IfSelected {
     param(
@@ -44,46 +36,41 @@ Write-Host "Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n" -ForegroundCol
 # Part 1: DISM Image Repair
 Write-Host "━━━ Part 1: DISM Image Repair ━━━" -ForegroundColor Cyan
 Invoke-IfSelected "DISM CheckHealth" {
-    Write-Host " [1/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Checking component store health..."
+    Write-Host " [1/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Checking component store health..."
     DISM /Online /Cleanup-Image /CheckHealth
 }
 
 Invoke-IfSelected "DISM ScanHealth" {
-    Write-Host " [2/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Scanning for corruption..."
+    Write-Host " [2/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Scanning for corruption..."
     DISM /Online /Cleanup-Image /ScanHealth
 }
 
 Invoke-IfSelected "DISM RestoreHealth" {
-    Write-Host " [3/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Repairing Windows image..."
+    Write-Host " [3/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Repairing Windows image..."
     DISM /Online /Cleanup-Image /RestoreHealth
 }
 
 # Part 2: Component Cleanup
 Write-Host "`n━━━ Part 2: Component Store Cleanup ━━━" -ForegroundColor Cyan
 Invoke-IfSelected "DISM AnalyzeComponentStore" {
-    Write-Host " [4/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Analyzing component store..."
+    Write-Host " [4/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Analyzing component store..."
     DISM /Online /Cleanup-Image /AnalyzeComponentStore
 }
 
 Invoke-IfSelected "DISM StartComponentCleanup" {
-    Write-Host " [5/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Standard cleanup..."
+    Write-Host " [5/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Standard cleanup..."
     DISM /Online /Cleanup-Image /StartComponentCleanup
 }
 
 Invoke-IfSelected "DISM StartComponentCleanup /ResetBase" {
-    Write-Host " [6/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Aggressive cleanup (ResetBase)..."
+    Write-Host " [6/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Aggressive cleanup (ResetBase)..."
     DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase
-}
-
-Invoke-IfSelected "DISM SPSuperseded" {
-    Write-Host " [7/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Removing superseded components..."
-    DISM /Online /Cleanup-Image /SPSuperseded
 }
 
 # Part 3: SFC
 Write-Host "`n━━━ Part 3: System File Check ━━━" -ForegroundColor Cyan
 Invoke-IfSelected "SFC /scannow" {
-    Write-Host " [8/8] " -NoNewline -ForegroundColor Yellow; Write-Host "Verifying system files..."
+    Write-Host " [7/7] " -NoNewline -ForegroundColor Yellow; Write-Host "Verifying system files..."
     sfc /scannow
 }
 
