@@ -393,7 +393,13 @@ if (-not $selective -or $Privacy) {
         @{P = "HKCU:\Software\Policies\Microsoft\Windows\CloudContent"; N = "DisableTailoredExperiencesWithDiagnosticData"; V = 1 }
     )
     foreach ($t in $tw) { if (-not (Test-Path $t.P)) { New-Item $t.P -Force | Out-Null }; Set-ItemProperty $t.P $t.N $t.V -Force }
-    Show-OK "Privacy tweaks applied."
+
+    # Restore classic Windows 10 right-click context menu
+    $ctxKey = "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InProcServer32"
+    if (-not (Test-Path $ctxKey)) { New-Item $ctxKey -Force | Out-Null }
+    Set-ItemProperty $ctxKey "(Default)" "" -Force
+
+    Show-OK "Privacy & UI tweaks applied."
 
 } # end Privacy
 
