@@ -90,6 +90,10 @@ if (-not $selective -or $FixWinget) {
 
     Show-Header "Configuring winget..."
     winget source reset --force *>$null
+    $hasSrc = winget source list 2>$null | Select-String -Pattern '^\s*winget\s'
+    if (-not $hasSrc) {
+        winget source add --name winget --arg https://cdn.winget.microsoft.com/cache --type Microsoft.PreIndexed.Package *>$null
+    }
     winget source update *>$null
     if ($LASTEXITCODE -eq 0) { Show-OK "winget sources refreshed." }
     else { Show-Error "winget source update failed (exit $LASTEXITCODE)" }
