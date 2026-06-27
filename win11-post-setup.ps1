@@ -15,7 +15,6 @@ param(
     [switch]$Fonts,          # install Meslo NF fonts
     [switch]$GitConfig,      # configure SSH agent & git
     [switch]$MailStore,      # install MailStore Home
-    [switch]$RdpSuspend,     # RDP auto-suspend scheduled task
     [switch]$Debloat,        # run win11 debloater
     [switch]$Network,        # disable IPv6
     [switch]$OnlyConfig      # shorthand: FixPath+StarshipConfig+Aliases+Vimrc+MacosHotkeys
@@ -24,7 +23,7 @@ if ($OnlyConfig) { $FixPath = $StarshipConfig = $Aliases = $Vimrc = $MacosHotkey
 # If any switch is passed, only run the flagged sections; otherwise run everything.
 $selective = $FixWinget -or $InstallPackages -or $FixPath -or $StarshipConfig -or $Aliases -or $Vimrc -or $MacosHotkeys -or
 $Cleanup -or $Maintenance -or $RestoreVsCode -or $WingetUpdate -or $Privacy -or $Fonts -or
-$GitConfig -or $MailStore -or $RdpSuspend -or $Debloat -or $Network
+$GitConfig -or $MailStore -or $Debloat -or $Network
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot ??= $PSScriptRoot
@@ -473,39 +472,6 @@ if (-not $selective -or $MailStore) {
     }
 
 } # end MailStore
-
-# ============================
-# RDP Auto-Suspend
-# ============================
-# Suspends VM on Linux host when RDP disconnects
-if (-not $selective -or $RdpSuspend) {
-
-    $autoSuspendTask = "AutoSuspend-RDP"
-    $existingTask = schtasks /query /tn $autoSuspendTask 2>&1
-    if ($existingTask -match "ERROR|does not exist") {
-        $LinuxHost = "192.168.1.5"
-        $LinuxUser = "nasadmin"
-        $VMName = "Win11"
-    
-        # Create suspend script
-        $SuspendScript = "$env:ProgramData\rdp-suspend.ps1"
-        "ssh ${LinuxUser}@${LinuxHost} `"virsh -c qemu:///system suspend ${VMName}`"" | Set-Content $SuspendScript
-
-        # Create scheduled task
-        schtasks /create /tn $autoSuspendTask `
-            /tr "pwsh.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$SuspendScript`"" `
-            /sc ONEVENT /ec "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" `
-            /mo "*[System[Provider[@Name='Microsoft-Windows-TerminalServices-LocalSessionManager'] and (EventID=24)]]" `
-            /ru "$env:USERDOMAIN\$env:USERNAME" /it /f | Out-Null
-
-        if ($LASTEXITCODE -eq 0) { Show-OK "Auto-Suspend task created." }
-        else { Show-Error "Auto-Suspend task failed." }
-    }
-    else {
-        Write-Host " [SKIP] Auto-Suspend task exists" -ForegroundColor DarkGray
-    }
-
-} # end RdpSuspend
 
 # ======================
 # Debloater

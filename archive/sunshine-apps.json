@@ -1,0 +1,31 @@
+{
+    "env": {},
+    "apps": [
+        {
+            "name": "Desktop",
+            "image-path": "desktop.png"
+        },
+        {
+            "name": "Pioneers of Pagonia",
+            "cmd": "steam://rungameid/2155180",
+            "image-path": "",
+            "auto-detach": true,
+            "wait-all": true,
+            "exit-timeout": 5
+        },
+        {
+            "name": "Steam Big Picture",
+            "cmd": "steam://open/bigpicture",
+            "image-path": "steam.png",
+            "prep-cmd": [
+                {
+                    "do": "",
+                    "undo": "steam://close/bigpicture"
+                }
+            ],
+            "auto-detach": true,
+            "wait-all": true,
+            "exit-timeout": 5
+        }
+    ]
+}

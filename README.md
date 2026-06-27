@@ -91,45 +91,17 @@ When you run `win11-post-setup.bat` on a fresh machine:
 │
 ├── 📁 archive/                 # 📦 Legacy & extras
 │
-├── 📁 vm-rdp-wake/              # 💤 VM suspend/wake automation
-│   ├── 💤 setup-auto-suspend.ps1 # 🪟 Windows: Suspend VM on RDP disconnect
-│   └── ⏰ setup-rdp-wake.sh      # 🐧 Linux: Wake VM on RDP connect
-│
 ├── 🚀 win11-post-setup.bat     # ▶️ Entry point (run this!)
 └── ⚡ win11-post-setup.ps1     # Main PowerShell 7 script
 ```
 
 ---
 
-## 💤 VM Auto-Suspend/Wake (Optional)
-
-🖥️ For VMs running on a Linux host (libvirt/QEMU), this setup enables seamless RDP:
-- 🔌 **Connect via RDP** → VM wakes/resumes automatically 🌅
-- 🔌 **Disconnect from RDP** → VM suspends to save resources 😴
-
-### 🧩 Components
-
-| Script                   | Platform  | Purpose                                                  |
-| ------------------------ | --------- | -------------------------------------------------------- |
-| `setup-auto-suspend.ps1` | 🪟 Windows | 📋 Creates scheduled task to SSH suspend VM on disconnect |
-| `setup-rdp-wake.sh`      | 🐧 Linux   | 🔌 Systemd socket service on port 33899 to wake VM        |
-
-### ⚡ Quick Setup
-
-**🐧 Linux Host:**
-```bash
-./vm-rdp-wake/setup-rdp-wake.sh  # Run as root
-```
-
-**🪟 Windows Guest:** *(Auto-runs via main setup, or run manually)*
-```powershell
-.\vm-rdp-wake\setup-auto-suspend.ps1  # Run as Admin
-```
-
-**🔗 Connect:** `mstsc /v:<Linux-Host-IP>:33899`
+## 💤 VM Auto-Suspend/Wake
 
 > [!NOTE]
-> 🔑 Requires SSH key authentication from Windows guest to Linux host.
+> 🐧 The RDP suspend/wake automation is now **fully handled on the Linux host** and is no
+> longer part of this repo. The Windows guest no longer creates a suspend scheduled task.
 
 ---
 
