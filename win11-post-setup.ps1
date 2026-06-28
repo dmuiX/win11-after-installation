@@ -15,6 +15,7 @@ param(
     [switch]$Fonts,          # install Meslo NF fonts
     [switch]$GitConfig,      # configure SSH agent & git
     [switch]$MailStore,      # install MailStore Home
+    [switch]$Sunshine,       # deploy Sunshine apps.json (if installed)
     [switch]$Debloat,        # run win11 debloater
     [switch]$Network,        # disable IPv6
     [switch]$OnlyConfig      # shorthand: FixPath+StarshipConfig+Aliases+Vimrc+MacosHotkeys
@@ -23,7 +24,7 @@ if ($OnlyConfig) { $FixPath = $StarshipConfig = $Aliases = $Vimrc = $MacosHotkey
 # If any switch is passed, only run the flagged sections; otherwise run everything.
 $selective = $FixWinget -or $InstallPackages -or $FixPath -or $StarshipConfig -or $Aliases -or $Vimrc -or $MacosHotkeys -or
 $Cleanup -or $Maintenance -or $RestoreVsCode -or $WingetUpdate -or $Privacy -or $Fonts -or
-$GitConfig -or $MailStore -or $Debloat -or $Network
+$GitConfig -or $MailStore -or $Sunshine -or $Debloat -or $Network
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot ??= $PSScriptRoot
@@ -472,6 +473,33 @@ if (-not $selective -or $MailStore) {
     }
 
 } # end MailStore
+
+# ============================
+# Sunshine apps.json
+# ============================
+# Deploy the streaming app list, but only if Sunshine is already installed.
+if (-not $selective -or $Sunshine) {
+
+    $sunshineCfgDir = "$env:ProgramFiles\Sunshine\config"
+    if (Test-Path $sunshineCfgDir) {
+        Show-Header "Deploying Sunshine config"
+        $appsSrc = "$ScriptRoot\configs\sunshine-apps.json"
+        if (Test-Path $appsSrc) {
+            Copy-Item $appsSrc "$sunshineCfgDir\apps.json" -Force
+            Show-OK "Sunshine apps.json deployed."
+            # Restart the service so it reloads the app list
+            if (Get-Service -Name "SunshineService" -ErrorAction SilentlyContinue) {
+                Restart-Service -Name "SunshineService" -Force -ErrorAction SilentlyContinue
+                Show-OK "Sunshine service restarted."
+            }
+        }
+        else { Show-Error "Sunshine apps.json source missing: $appsSrc" }
+    }
+    else {
+        Write-Host " [SKIP] Sunshine not installed" -ForegroundColor DarkGray
+    }
+
+} # end Sunshine
 
 # ======================
 # Debloater
