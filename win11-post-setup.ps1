@@ -116,6 +116,7 @@ if (-not $selective -or $InstallPackages) {
         "DEVCOM.JetBrainsMonoNerdFont",
         "CodeSector.TeraCopy", 
         "Valve.Steam",
+        "LizardByte.Sunshine",
         "7zip.7zip",
         "JAMSoftware.TreeSize.Free",
         "veeam.veeamagent",
